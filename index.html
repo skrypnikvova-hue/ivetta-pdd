@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#673AB7">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <title>Ivetta PDD</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="stylesheet" href="style.css?v=2">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="progress" id="progress">Все вопросы<br>1 / 800</div>
+            <button class="logo-btn" id="logoBtn">Ivetta<br>PDD</button>
+            <label class="switch">
+                <input type="checkbox" id="showAnswer">
+                <span class="slider">Ответ</span>
+            </label>
+        </div>
+
+        <div class="question" id="question"></div>
+        
+        <div class="image-container" id="imageContainer" style="display:none;">
+            <img id="questionImage" src="" alt="">
+        </div>
+
+        <div class="answers" id="answers"></div>
+
+        <div class="navigation">
+            <button id="prevBtn">← Назад</button>
+            <button id="nextBtn">Далее →</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно меню -->
+    <div id="menuOverlay" class="overlay" style="display:none;">
+        <div class="menu-modal">
+            <h3>Выберите режим</h3>
+            <button class="menu-btn" onclick="selectMode('all')"> Все вопросы</button>
+            <button class="menu-btn" onclick="showTicketMenu()">🎫 Билеты</button>
+            <button class="menu-btn" onclick="showTopicsMenu()">📂 Темы</button>
+            <button class="menu-btn" onclick="selectMode('mistakes')">❌ Мои ошибки</button>
+            <button class="menu-btn close-btn" onclick="closeMenu()">✖ Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно выбора билета -->
+    <div id="ticketOverlay" class="overlay" style="display:none;">
+        <div class="menu-modal">
+            <h3>Выберите билет</h3>
+            <div id="ticketGrid" class="ticket-grid"></div>
+            <button class="menu-btn close-btn" onclick="closeTicketMenu()">✖ Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно выбора темы -->
+    <div id="topicsOverlay" class="overlay" style="display:none;">
+        <div class="menu-modal">
+            <h3>Выберите тему</h3>
+            <div id="topicsList" class="topics-list"></div>
+            <button class="menu-btn close-btn" onclick="closeTopicsMenu()">✖ Закрыть</button>
+        </div>
+    </div>
+
+    <script src="app.js?v=2"></script>
+</body>
+</html>
