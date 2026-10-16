@@ -2,7 +2,7 @@
   "name": "Ivetta PDD",
   "short_name": "Ivetta PDD",
   "description": "Тренажёр ПДД категории CD",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#673AB7",
