@@ -1,14 +1,13 @@
 const CACHE_NAME = 'ivetta-pdd-v2';
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/style.css',
-    '/app.js',
-    '/manifest.json',
-    '/tickets_cd_2026.json',
-    '/topics.json'
+    './',
+    './index.html',
+    './style.css',
+    './app.js',
+    './manifest.json',
+    './tickets_cd_2026.json',
+    './topics.json'
 ];
-
 self.addEventListener('install', event => {
     self.skipWaiting();
     event.waitUntil(
