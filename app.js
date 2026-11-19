@@ -196,7 +196,7 @@ function complete() {
 }
 function refreshHome() {
   const st = entStatus(), d = getDaily();
-  $('homeChip').textContent = st.kind === 'licensed' ? '✓ Пожизненный доступ' : st.kind === 'trial' ? 'Пробный период: ' + daysLeft(st.left) + ' дн.' : 'Пробный период завершён · «Ответ» 399 ₽';
+  $('logoSub').textContent = st.kind === 'licensed' ? '✓ Пожизненный доступ' : st.kind === 'trial' ? 'Пробный период: ' + daysLeft(st.left) + ' дн.' : 'Пробный период завершён · «Ответ» 399 ₽';
   $('homeStreak').textContent = streak(d);
   $('homeToday').textContent = (d[todayKey()] || {}).a || 0;
   $('homeContinueBtn').textContent = 'Продолжить: ' + titleOf() + ' →';
@@ -225,7 +225,7 @@ function renderProgress() {
 }
 function renderInfo() {
   const st = entStatus();
-  $('infoChip').textContent = st.kind === 'licensed' ? '✓ активен' : st.kind === 'trial' ? 'trial ' + daysLeft(st.left) + ' дн.' : 'trial ended';
+  $('infoChip').textContent = st.kind === 'licensed' ? '✓ активен' : st.kind === 'trial' ? 'Пробный период: ' + daysLeft(st.left) + ' дн.' : 'Пробный период завершён';
   $('infoTrialLine').textContent = st.kind === 'licensed' ? 'Спасибо! Доступ открыт навсегда на этом устройстве.' : st.kind === 'trial' ? 'Сейчас действует бесплатный пробный период: ' + daysLeft(st.left) + ' дн. Затем кнопка «Ответ» станет платной.' : 'Пробный период завершён. Оплати один раз — и кнопка «Ответ» твоя навсегда.';
   const lic = st.e && st.e.license;
   $('payBlock').hidden = !!lic; $('receiptPanel').hidden = !lic;
@@ -244,7 +244,7 @@ async function submitPay(e) {
     const lic = await P.pay(card);
     const ent = getEnt() || { trialStart: Date.now() }; ent.license = lic; store.set('ent', JSON.stringify(ent));
     sfx.win(); confetti(); toast('Доступ активирован пожизненно 🎉');
-    syncControls(); renderInfo(); refreshMenu();
+    syncControls(); renderInfo(); refreshMenu(); refreshHome();
   } catch (err) {
     $('payError').hidden = false;
     $('payError').textContent = err.code === 'declined' ? 'Банк отклонил платёж. Попробуй другую карту.' : err.code === 'backend_required' ? 'Боевой эквайринг требует подключения бэкенда.' : 'Платёж не прошёл. Проверь данные карты.';

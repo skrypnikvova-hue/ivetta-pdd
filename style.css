@@ -205,8 +205,13 @@ body[data-view="home"] #stage{max-width:none;padding:0}
 .explain{margin-top:12px;border:2px solid var(--blue-700);background:var(--blue-100);border-radius:var(--r-md);padding:12px 14px;animation:riseIn .4s cubic-bezier(.2,.9,.3,1) both}
 .explain-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;color:var(--blue-700);font-size:13px;font-weight:850;letter-spacing:.3px}
 .explain-ic{font-size:15px}
-.explain-body{max-height:180px;overflow-y:auto;font-size:14px;line-height:1.55;color:var(--text);padding-right:6px}
+.explain-body{max-height:none;overflow:visible;font-size:14px;line-height:1.55;color:var(--text);padding-right:6px}
 .explain-body strong{color:var(--blue-700)}
 .explain-foot{margin-top:8px;font-size:11px;font-weight:700;color:var(--muted)}
 .nav-btn.invite{animation:invite 1.6s ease-in-out infinite}
  @keyframes invite{0%,100%{box-shadow:0 6px 18px rgba(109,40,217,.32)}50%{box-shadow:0 6px 26px rgba(61,90,254,.65)}}
+.logo-text{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.logo-sub{display:none;font-size:10.5px;font-weight:700;color:rgba(255,255,255,.82);letter-spacing:.3px;white-space:nowrap;text-shadow:0 1px 8px rgba(0,0,0,.4)}
+body[data-view="home"] .logo-sub{display:block}
+body[data-view="home"] .logo-word{display:flex}
+.explain-body{padding-right:0}
