@@ -11,7 +11,8 @@ const store = {
   set(k, v) { try { storageOK ? localStorage.setItem(NS + k, v) : mem.set(k, v); } catch (e) { mem.set(k, v); } }
 };
 const state = { mode: 'all', ticket: 1, topic: '', index: 0, showAnswer: false, auto: true, sound: true, mistakes: new Set(), done: new Set(), mastered: new Set(), session: { ok: 0, bad: 0 } };
-let allQuestions = [], topics = [], current = [], answeredIndex = -1, lastChoice = -1, advanceTimer = null, topicError = false, pgRange = 14;
+let allQuestions = [], topics = [], current = [], explainMap = new Map();
+let answeredIndex = -1, lastChoice = -1, advanceTimer = null, topicError = false, pgRange = 14;
 const ctxKey = (m = state.mode, t = state.ticket, tp = state.topic) => m === 'ticket' ? 'ticket:' + t : m === 'topic' ? 'topic:' + tp : m;
 const titleOf = () => state.mode === 'ticket' ? 'Билет ' + state.ticket : state.mode === 'topic' ? state.topic : state.mode === 'mistakes' ? 'Мои ошибки' : 'Все вопросы';
 function getEnt() { try { return JSON.parse(store.get('ent') || 'null'); } catch (e) { return null; } }
@@ -64,10 +65,47 @@ function ac() { if (!actx) { try { actx = new (window.AudioContext || window.web
 function tone(f, d, t, g, w) { const c = ac(); if (!c || !state.sound) return; const o = c.createOscillator(), v = c.createGain(), s = c.currentTime + (w || 0); o.type = t || 'sine'; o.frequency.value = f; v.gain.setValueAtTime(.0001, s); v.gain.exponentialRampToValueAtTime(g || .12, s + .015); v.gain.exponentialRampToValueAtTime(.0001, s + d); o.connect(v).connect(c.destination); o.start(s); o.stop(s + d + .05); }
 const sfx = { tap: () => tone(520, .06, 'triangle', .05), ok: () => { tone(660, .12); tone(880, .18, 'sine', .1, .09); }, bad: () => tone(150, .22, 'square', .06), win: () => [523, 659, 784, 1043].forEach((f, i) => tone(f, .22, 'sine', .1, i * .11)) };
 addEventListener('pointerdown', () => ac(), { once: true });
+async function loadExplanations() {
+  const lists = await Promise.all(topics.map(async name => {
+    try { return await (await fetch('./topics/' + encodeURIComponent(name) + '.json')).json(); } catch (e) { return []; }
+  }));
+  lists.forEach(arr => (arr || []).forEach(it => {
+    if (!it || it.id === undefined) return;
+    const tip = it.answer_tip || it.explanation || it.comment || '';
+    if (tip) explainMap.set(it.id, String(tip));
+  }));
+}
+const explanationFor = q => q.explanation || q.answer_tip || explainMap.get(q.id) || '';
+function correctIndex(q) {
+  for (let i = 0; i < q.answers.length; i++) {
+    const a = q.answers[i];
+    if (a.isCorrect === true || (a.isCorrect === undefined && q.correctIndex === i)) return i;
+  }
+  return -1;
+}
+function showExplanation(q) {
+  const tip = explanationFor(q);
+  if (!tip) return false;
+  const old = document.getElementById('explainBox'); if (old) old.remove();
+  const box = document.createElement('div'); box.id = 'explainBox'; box.className = 'explain';
+  const head = document.createElement('div'); head.className = 'explain-head';
+  head.innerHTML = '<span class="explain-ic">ℹ️</span><b>Пояснение</b>';
+  const body = document.createElement('div'); body.className = 'explain-body';
+  const lead = document.createElement('strong');
+  lead.textContent = 'Правильный ответ: ' + (correctIndex(q) + 1) + '. ';
+  body.appendChild(lead); body.appendChild(document.createTextNode(tip));
+  const foot = document.createElement('div'); foot.className = 'explain-foot';
+  foot.textContent = 'Автопереход отключён для этого вопроса — читай спокойно и жми «Далее».';
+  box.append(head, body, foot);
+  $('answers').after(box);
+  $('nextBtn').classList.add('invite');
+  return true;
+}
 async function loadData() {
   try { allQuestions = await (await fetch('./tickets_cd_2026.json')).json(); }
   catch (e) { $('questionText').textContent = 'Не удалось загрузить базу вопросов.'; return; }
   try { topics = await (await fetch('./topics.json')).json(); } catch (e) { topics = []; }
+  await loadExplanations();
   load(); syncControls(); show('home'); rebuild();
 }
 async function rebuild() {
@@ -99,6 +137,8 @@ function show(v) {
   if (v === 'quiz') render();
 }
 function render() {
+  const oldEx = document.getElementById('explainBox'); if (oldEx) oldEx.remove();
+  $('nextBtn').classList.remove('invite');
   if (!current.length) {
     show('empty');
     $('emptyText').textContent = topicError ? 'Не удалось загрузить тему «' + state.topic + '».' : state.mode === 'mistakes' ? 'Ошибок пока нет — так держать!' : 'В этом разделе пока нет вопросов.';
@@ -122,6 +162,7 @@ function render() {
     else if (state.showAnswer && entitled() && ok) b.classList.add('reveal');
     b.addEventListener('click', () => answer(i, ok, q)); box.appendChild(b);
   });
+  if (answered) showExplanation(q);
   $('prevBtn').disabled = state.index === 0; $('nextBtn').disabled = state.index === total - 1;
   $('autoBar').classList.remove('pending');
 }
@@ -136,7 +177,11 @@ function answer(i, ok, q) {
   if (ok) { state.session.ok++; state.mistakes.delete(q.id); state.mastered.add(q.id); sfx.ok(); }
   else { state.session.bad++; state.mistakes.add(q.id); sfx.bad(); }
   recordDaily(ok); save();
-  if (state.auto) { $('autoBar').classList.add('pending'); advanceTimer = setTimeout(() => state.index < current.length - 1 ? next() : complete(), 900); }
+  const hasTip = showExplanation(q);
+  if (!hasTip && state.auto) {
+    $('autoBar').classList.add('pending');
+    advanceTimer = setTimeout(() => state.index < current.length - 1 ? next() : complete(), 900);
+  }
 }
 function clearAdvance() { clearTimeout(advanceTimer); advanceTimer = null; $('autoBar').classList.remove('pending'); }
 function next() { clearAdvance(); if (state.index < current.length - 1) { state.index++; answeredIndex = -1; save(); render(); } else complete(); }
@@ -161,7 +206,7 @@ function renderProgress() {
   $('pgToday').textContent = t.a; $('pgCorrect').textContent = t.c;
   $('pgAcc').textContent = t.a ? Math.round(t.c / t.a * 100) + '%' : '—';
   $('pgStreak').textContent = streak(d);
-  let total = 0, corr = 0; Object.values(d).forEach(r => { total += r.a; corr += r.c; });
+  let total = 0; Object.values(d).forEach(r => { total += r.a; });
   $('pgTotal').textContent = total;
   $('pgMastered').textContent = state.mastered.size + ' / ' + (allQuestions.length || 800);
   $('pgMistakes').textContent = state.mistakes.size;
@@ -244,7 +289,8 @@ let cRAF = null;
 function confetti() {
   if (REDUCED) return;
   const cv = $('confetti'), ctx = cv.getContext('2d');
-  cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio;
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
   const cols = ['#8B5CF6', '#3D5AFE', '#16A34A', '#F59E0B', '#D7263D', '#0EA5A5'];
   const ps = Array.from({ length: 130 }, () => ({ x: innerWidth / 2 + (Math.random() - .5) * 120, y: innerHeight * .35, vx: (Math.random() - .5) * 9, vy: -Math.random() * 11 - 3, s: Math.random() * 7 + 4, r: Math.random() * Math.PI, vr: (Math.random() - .5) * .3, c: cols[Math.random() * cols.length | 0], life: 1 }));
   cancelAnimationFrame(cRAF); const t0 = performance.now();
