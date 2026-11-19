@@ -106,7 +106,7 @@ async function loadExplanations() {
 function getLog() { try { return JSON.parse(store.get(k('log')) || '{}'); } catch (e) { return {}; } }
 function dueIds() {
   const log = getLog(); const now = Date.now(); const DAY = 864e5; const due = [];
-  state.mistakes.forEach(id => due.push(id));
+  state.mistakes.forEach(id => { const r = log[id]; if (!r || now - r.t > DAY) due.push(id); });
   Object.keys(log).forEach(id => { const r = log[id]; if (state.mistakes.has(id)) return; if (r.ok && now - r.t > 3 * DAY) due.push(id); else if (!r.ok && now - r.t > DAY) due.push(id); });
   if (!due.length) allQuestions.forEach(q => { if (!log[q.id] && due.length < 20) due.push(q.id); });
   return due.slice(0, 20);
@@ -173,6 +173,7 @@ async function rebuild() {
 }
 function setContext(mode, ticket, topic) {
   save(); state.mode = mode;
+  if (mode === 'review') { state.ledger = {}; store.set(k('ans:review'), '{}'); }
   if (ticket !== undefined) state.ticket = ticket;
   if (topic !== undefined) state.topic = topic;
   state.index = parseInt(store.get(k('p:' + ctxKey())) || '0', 10) || 0;
@@ -255,7 +256,7 @@ function render() {
   $('quizView').classList.toggle('exam-active', isExam);
   if (!current.length) {
     show('empty');
-    $('emptyText').textContent = bankError ? 'Банк ' + state.cat + ' ещё не загружен. Добавь tickets_' + state.cat.toLowerCase() + '_2026.json и темы.' : topicError ? 'Не удалось загрузить тему «' + state.topic + '».' : state.mode === 'mistakes' ? 'Ошибок пока нет — так держать!' : 'В этом разделе пока нет вопросов.';
+    $('emptyText').textContent = bankError ? 'Банк ' + state.cat + ' ещё не загружен. Добавь tickets_' + state.cat.toLowerCase() + '_2026.json и темы.' : topicError ? 'Не удалось загрузить тему «' + state.topic + '».' : state.mode === 'mistakes' ? 'Ошибок пока нет — так держать!' : state.mode === 'review' ? 'Повторять пока нечего — вернись завтра или пройди билет.' : 'В этом разделе пока нет вопросов.';
     $('emptyRetryBtn').hidden = !(topicError || bankError); return;
   }
   const q = current[state.index], total = current.length;
