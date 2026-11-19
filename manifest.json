@@ -1,22 +1,16 @@
 {
-  "name": "Ivetta PDD",
+  "name": "Ivetta PDD — тренажёр ПДД",
   "short_name": "Ivetta PDD",
-  "description": "Тренажёр ПДД категории CD",
-  "start_url": "/index.html",
+  "description": "800 вопросов ПДД категории CD: билеты, темы, работа над ошибками.",
+  "lang": "ru",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#673AB7",
   "orientation": "portrait",
+  "background_color": "#F4F2EC",
+  "theme_color": "#F4F2EC",
   "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
   ]
 }

@@ -1,73 +1,196 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="theme-color" content="#673AB7">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <title>Ivetta PDD</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="stylesheet" href="style.css?v=2">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F4F2EC">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ivetta PDD">
+<meta name="description" content="Ivetta PDD — тренажёр ПДД категории CD: 800 вопросов, 40 билетов, 26 тем, прогресс и пояснения.">
+<title>Ivetta PDD</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/svg+xml" href="./icon.svg">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="stylesheet" href="./style.css">
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="progress" id="progress">Все вопросы<br>1 / 800</div>
-            <button class="logo-btn" id="logoBtn">Ivetta<br>PDD</button>
-            <label class="switch">
-                <input type="checkbox" id="showAnswer">
-                <span class="slider">Ответ</span>
-            </label>
-        </div>
-
-        <div class="question" id="question"></div>
-        
-        <div class="image-container" id="imageContainer" style="display:none;">
-            <img id="questionImage" src="" alt="">
-        </div>
-
-        <div class="answers" id="answers"></div>
-
-        <div class="navigation">
-            <button id="prevBtn">← Назад</button>
-            <button id="nextBtn">Далее →</button>
-        </div>
+<body data-view="home">
+<div class="bg" aria-hidden="true">
+  <div class="bg-glow g1"></div><div class="bg-glow g2"></div><div class="bg-glow g3"></div>
+  <div class="bg-grain"></div>
+</div>
+<header class="appbar">
+  <button class="logo" id="logoBtn" aria-label="На главную">
+    <svg viewBox="0 0 64 64" class="logo-mark" aria-hidden="true">
+      <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#3D5AFE"/></linearGradient></defs>
+      <rect width="64" height="64" rx="16" fill="url(#lg)"/>
+      <path d="M18 52 L27 12 h10 L46 52 Z" fill="#fff"/>
+      <rect x="30.4" y="17" width="3.2" height="7" rx="1.6" fill="#6D28D9"/>
+      <rect x="30.4" y="29" width="3.2" height="7" rx="1.6" fill="#6D28D9"/>
+      <rect x="30.4" y="41" width="3.2" height="7" rx="1.6" fill="#6D28D9"/>
+    </svg>
+    <span class="logo-word">Ivetta<span class="logo-chip">PDD</span></span>
+  </button>
+  <div class="appbar-mid" id="appbarMid">
+    <div class="appbar-titles"><span id="sectionTitle">Все вопросы</span><span id="sectionCount">1 / 800</span></div>
+    <div class="progress-track"><div id="progressFill"></div></div>
+  </div>
+  <div class="appbar-actions">
+    <button class="icon-btn" id="soundBtn" aria-label="Звук">
+      <svg viewBox="0 0 24 24" class="ic-on"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 24 24" class="ic-off" hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9l6 6M22 9l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <label class="switch" id="answerSwitch" title="Показывать правильный ответ">
+      <input type="checkbox" id="showAnswer">
+      <span class="track"><span class="knob"></span></span>
+      <span class="switch-label">Ответ</span>
+      <span class="lock" id="switchLock" hidden>🔒</span>
+    </label>
+    <button class="icon-btn" id="menuBtn" aria-label="Меню">
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</header>
+<main id="stage">
+  <section id="homeView" class="home">
+    <div class="home-media">
+      <img id="homeImg" src="./home.jpg" alt="Иветта за рулём зимой">
+      <svg class="home-fallback" id="homeFallback" viewBox="0 0 800 1200" preserveAspectRatio="xMidYMid slice" hidden>
+        <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2B3A8F"/><stop offset=".55" stop-color="#7C6BD9"/><stop offset="1" stop-color="#F4F2EC"/></linearGradient></defs>
+        <rect width="800" height="1200" fill="url(#sky)"/>
+        <g fill="#1B2A6B" opacity=".55"><path d="M120 620l60-160 60 160z"/><path d="M600 640l70-200 70 200z"/><path d="M380 600l50-140 50 140z"/></g>
+        <g fill="#fff" opacity=".9"><path d="M120 500l60-40 60 40-60 26z"/><path d="M600 500l70-46 70 46-70 30z"/></g>
+        <path d="M0 760h800v440H0z" fill="#E9E6DD"/>
+        <path d="M330 760h140l180 440H150z" fill="#3A3F55"/>
+        <g fill="#F59E0B"><rect x="392" y="800" width="16" height="60" rx="8"/><rect x="386" y="920" width="20" height="80" rx="10"/><rect x="378" y="1060" width="26" height="110" rx="13"/></g>
+      </svg>
+      <div class="home-scrim"></div>
     </div>
-
-    <!-- Модальное окно меню -->
-    <div id="menuOverlay" class="overlay" style="display:none;">
-        <div class="menu-modal">
-            <h3>Выберите режим</h3>
-            <button class="menu-btn" onclick="selectMode('all')"> Все вопросы</button>
-            <button class="menu-btn" onclick="showTicketMenu()">🎫 Билеты</button>
-            <button class="menu-btn" onclick="showTopicsMenu()">📂 Темы</button>
-            <button class="menu-btn" onclick="selectMode('mistakes')">❌ Мои ошибки</button>
-            <button class="menu-btn close-btn" onclick="closeMenu()">✖ Закрыть</button>
-        </div>
+    <div class="home-content">
+      <span class="home-chip" id="homeChip">Пробный период</span>
+      <h1 class="home-title">Ivetta <span>PDD</span></h1>
+      <p class="home-sub">800 вопросов · 40 билетов · 26 тем.<br>Сдай на права спокойно и с удовольствием.</p>
+      <div class="home-stats">
+        <div><b id="homeStreak">0</b><small>дней подряд</small></div>
+        <div><b id="homeToday">0</b><small>сегодня ответов</small></div>
+      </div>
+      <div class="home-actions">
+        <button class="nav-btn primary big" id="homeContinueBtn">Продолжить обучение →</button>
+        <button class="nav-btn ghost big light" id="homeMenuBtn">Меню</button>
+      </div>
     </div>
-
-    <!-- Модальное окно выбора билета -->
-    <div id="ticketOverlay" class="overlay" style="display:none;">
-        <div class="menu-modal">
-            <h3>Выберите билет</h3>
-            <div id="ticketGrid" class="ticket-grid"></div>
-            <button class="menu-btn close-btn" onclick="closeTicketMenu()">✖ Закрыть</button>
-        </div>
+  </section>
+  <section id="quizView" hidden>
+    <article class="card" id="card">
+      <div class="q-top"><span class="chip" id="qChip">Билет 1</span><span class="lane"></span></div>
+      <h1 id="questionText">Загрузка…</h1>
+      <figure id="imageWrap" hidden><img id="questionImage" alt="Иллюстрация"><figcaption>Нажми, чтобы увеличить</figcaption></figure>
+      <div id="answers" role="list"></div>
+      <div class="auto-bar" id="autoBar"></div>
+    </article>
+    <div class="navbar">
+      <button class="nav-btn" id="prevBtn">← Назад</button>
+      <span class="nav-hint">свайп ← → · клавиши 1-4</span>
+      <button class="nav-btn primary" id="nextBtn">Далее →</button>
     </div>
-
-    <!-- Модальное окно выбора темы -->
-    <div id="topicsOverlay" class="overlay" style="display:none;">
-        <div class="menu-modal">
-            <h3>Выберите тему</h3>
-            <div id="topicsList" class="topics-list"></div>
-            <button class="menu-btn close-btn" onclick="closeTopicsMenu()">✖ Закрыть</button>
-        </div>
+  </section>
+  <section id="progressView" hidden>
+    <div class="card screen-card">
+      <div class="screen-head"><h2>📈 Прогресс</h2><div class="range-toggle"><button id="pgRange7" class="range-btn">7 дн</button><button id="pgRange14" class="range-btn active">14 дн</button></div></div>
+      <div class="pg-today">
+        <div class="pg-cell"><b id="pgToday">0</b><small>ответов сегодня</small></div>
+        <div class="pg-cell"><b id="pgCorrect">0</b><small>верных</small></div>
+        <div class="pg-cell"><b id="pgAcc">—</b><small>точность</small></div>
+        <div class="pg-cell flame"><b id="pgStreak">0</b><small>дней подряд 🔥</small></div>
+      </div>
+      <div class="pg-chart" id="pgChart"></div>
+      <div class="pg-totals">
+        <div><small>Всего ответов</small><b id="pgTotal">0</b></div>
+        <div><small>Освоено вопросов</small><b id="pgMastered">0 / 800</b></div>
+        <div><small>В работе над ошибками</small><b id="pgMistakes">0</b></div>
+      </div>
     </div>
-
-    <script src="app.js?v=2"></script>
+  </section>
+  <section id="infoView" hidden>
+    <div class="card screen-card">
+      <div class="screen-head"><h2>✨ Кнопка «Ответ»</h2><span class="home-chip" id="infoChip"></span></div>
+      <p class="info-lead">Видеть правильный ответ <b>до</b> того, как ошибёшься, — самый быстрый способ учить ПДД. Мозг запоминает верный паттерн сразу, без закрепления ошибки.</p>
+      <ul class="benefits">
+        <li><b>Мгновенная подсветка</b> верного варианта в каждом из 800 вопросов.</li>
+        <li><b>Учёба без страха:</b> проходи билеты как тренажёр, а не как экзамен.</li>
+        <li><b>Синергия с ошибками:</b> сначала разбираешь с подсказкой, потом закрепляешь без неё.</li>
+        <li><b>Экономия времени:</b> меньше повторных прогонов — быстрее готовность к экзамену.</li>
+        <li><b>Пожизненно:</b> одна оплата 399 ₽ — доступ навсегда, без подписок.</li>
+      </ul>
+      <div class="price-card">
+        <div class="price-row"><span class="price">399 ₽</span><span class="price-note">разово · пожизненный доступ</span></div>
+        <p class="trial-line" id="infoTrialLine"></p>
+      </div>
+      <div id="payBlock">
+        <div class="pay-head"><b>Оплата картой</b><span class="test-badge" id="payBadge">тестовый режим</span></div>
+        <form id="payForm" novalidate>
+          <label class="field"><span>Номер карты</span>
+            <input id="cardNumber" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" maxlength="19">
+            <small class="err" id="errNumber"></small>
+          </label>
+          <div class="field-row">
+            <label class="field"><span>Срок</span><input id="cardExp" inputmode="numeric" autocomplete="cc-exp" placeholder="ММ/ГГ" maxlength="5"><small class="err" id="errExp"></small></label>
+            <label class="field"><span>CVC</span><input id="cardCvc" inputmode="numeric" autocomplete="cc-csc" placeholder="•••" maxlength="4" type="password"><small class="err" id="errCvc"></small></label>
+          </div>
+          <div class="pay-error" id="payError" hidden></div>
+          <button class="nav-btn primary big" id="payBtn" type="submit">Оплатить 399 ₽</button>
+          <p class="pay-hint" id="payHint">Тестовые карты: 4111 1111 1111 1111 — успех; 4000 0000 0000 0002 — отказ.</p>
+        </form>
+        <button class="link-btn" id="restoreBtn">Восстановить покупку</button>
+      </div>
+      <div id="receiptPanel" hidden>
+        <div class="receipt">
+          <div class="rc-check">✓</div>
+          <b>Доступ активен пожизненно</b>
+          <div class="rc-row"><span>Лицензия</span><code id="rcKey"></code></div>
+          <div class="rc-row"><span>Дата</span><span id="rcDate"></span></div>
+          <div class="rc-row"><span>Сумма</span><span id="rcAmount"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="doneView" hidden>
+    <div class="card done-card"><div class="done-badge">🏁</div><h2 id="doneTitle"></h2><p id="doneStats"></p>
+      <div class="done-actions"><button class="nav-btn" id="repeatBtn">↺ Повторить</button><button class="nav-btn primary" id="nextSectionBtn">Дальше →</button><button class="nav-btn ghost" id="doneMenuBtn">Меню</button></div>
+    </div>
+  </section>
+  <section id="emptyView" hidden>
+    <div class="card done-card"><div class="done-badge">🗂️</div><h2>Здесь пока пусто</h2><p id="emptyText"></p>
+      <div class="done-actions"><button class="nav-btn" id="emptyRetryBtn" hidden>↺ Повторить</button><button class="nav-btn primary" id="emptyMenuBtn">В меню</button></div>
+    </div>
+  </section>
+</main>
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="menuSheet" hidden role="dialog" aria-label="Меню">
+  <div class="sheet-head"><h2>Меню</h2><button class="icon-btn close" data-close>✕</button></div>
+  <nav class="menu-list">
+    <button class="menu-item" data-nav="home"><span class="mi-ic">🏠</span><span class="mi-body"><b>Главная</b><small>экран приветствия</small></span></button>
+    <button class="menu-item" data-nav="all"><span class="mi-ic">📚</span><span class="mi-body"><b>Все вопросы</b><small>800 подряд</small></span><span class="mi-badge" id="badgeAll"></span></button>
+    <button class="menu-item" data-nav="ticket"><span class="mi-ic">🎫</span><span class="mi-body"><b>Билеты</b><small>40 билетов</small></span><span class="mi-badge" id="badgeTicket"></span></button>
+    <button class="menu-item" data-nav="topic"><span class="mi-ic">📂</span><span class="mi-body"><b>Темы</b><small>26 разделов</small></span><span class="mi-badge" id="badgeTopic"></span></button>
+    <button class="menu-item" data-nav="mistakes"><span class="mi-ic">❌</span><span class="mi-body"><b>Ошибки</b><small>работа над ошибками</small></span><span class="mi-badge" id="badgeMistakes"></span></button>
+    <div class="menu-divider"></div>
+    <button class="menu-item" data-nav="progress"><span class="mi-ic">📈</span><span class="mi-body"><b>Прогресс</b><small>ежедневная статистика</small></span><span class="mi-badge" id="badgeProgress"></span></button>
+    <button class="menu-item" data-nav="info"><span class="mi-ic">✨</span><span class="mi-body"><b>Информация</b><small>о кнопке «Ответ» и оплата</small></span><span class="mi-badge" id="badgeInfo"></span></button>
+  </nav>
+  <div class="sheet-settings">
+    <label class="switch wide"><input type="checkbox" id="autoAdvance" checked><span class="track"><span class="knob"></span></span><span class="switch-label">Автопереход после ответа</span></label>
+    <button class="danger-ghost" id="resetSectionBtn">Сбросить прогресс этого раздела</button>
+  </div>
+  <div class="sheet-foot">Ivetta PDD · v4.0 · архитектура Платон</div>
+</div>
+<div class="sheet" id="ticketSheet" hidden role="dialog"><div class="sheet-head"><h2>Выбери билет</h2><button class="icon-btn close" data-close>✕</button></div><div class="ticket-grid" id="ticketGrid"></div></div>
+<div class="sheet" id="topicSheet" hidden role="dialog"><div class="sheet-head"><h2>Выбери тему</h2><button class="icon-btn close" data-close>✕</button></div><div class="topic-list" id="topicList"></div></div>
+<div class="lightbox" id="lightbox" hidden><img id="lightboxImg" alt=""></div>
+<canvas id="confetti"></canvas>
+<div class="toast" id="toast" role="status"></div>
+<script src="./payments.js"></script>
+<script src="./app.js"></script>
 </body>
 </html>
