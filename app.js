@@ -227,6 +227,7 @@ function render() {
   $('nextBtn').classList.remove('invite');
   const isExam = state.mode === 'exam';
   $('examHud').hidden = !isExam;
+  $('quizView').classList.toggle('exam-active', isExam);
   if (!current.length) {
     show('empty');
     $('emptyText').textContent = bankError ? 'Банк ' + state.cat + ' ещё не загружен. Добавь tickets_' + state.cat.toLowerCase() + '_2026.json и темы.' : topicError ? 'Не удалось загрузить тему «' + state.topic + '».' : state.mode === 'mistakes' ? 'Ошибок пока нет — так держать!' : 'В этом разделе пока нет вопросов.';
@@ -262,6 +263,7 @@ function render() {
   $('prevBtn').disabled = isExam || state.index === 0;
   $('nextBtn').disabled = isExam ? (!answered || state.index === total - 1) : state.index === total - 1;
   $('autoBar').classList.remove('pending');
+  syncControls();
 }
 function answer(i, ok, q) {
   if (answeredIndex === state.index) return;
@@ -421,10 +423,11 @@ function confetti() {
 }
 function syncControls() {
   const ok = entitled();
+  const examLock = state.mode === 'exam';
   if (!ok) state.showAnswer = false;
-  $('showAnswer').checked = state.showAnswer;
-  $('answerSwitch').classList.toggle('locked', !ok);
-  $('switchLock').hidden = ok;
+  $('showAnswer').checked = state.showAnswer && !examLock;
+  $('answerSwitch').classList.toggle('locked', !ok || examLock);
+  $('switchLock').hidden = ok && !examLock;
   $('autoAdvance').checked = state.auto;
   $('soundBtn').querySelector('.ic-on').toggleAttribute('hidden', !state.sound);
   $('soundBtn').querySelector('.ic-off').toggleAttribute('hidden', state.sound);
@@ -456,8 +459,8 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (n === 'home' || n === 'progress' || n === 'info') { closeSheets(); show(n); }
     else setContext(n);
   }));
-  $('answerSwitch').addEventListener('click', e => { if (!entitled()) { e.preventDefault(); show('info'); toast('Пробный период завершён — открой пожизненный доступ'); } });
-  $('showAnswer').addEventListener('change', e => { if (!entitled()) { e.target.checked = false; show('info'); return; } state.showAnswer = e.target.checked; save(); render(); });
+  $('answerSwitch').addEventListener('click', e => { if (state.mode === 'exam') { e.preventDefault(); toast('На экзамене подсказки отключены'); return; } if (!entitled()) { e.preventDefault(); show('info'); toast('Пробный период завершён — открой пожизненный доступ'); } });
+  $('showAnswer').addEventListener('change', e => { if (state.mode === 'exam') { e.target.checked = false; toast('На экзамене подсказки отключены'); return; } if (!entitled()) { e.target.checked = false; show('info'); return; } state.showAnswer = e.target.checked; save(); render(); });
   $('autoAdvance').addEventListener('change', e => { state.auto = e.target.checked; save(); if (!state.auto) clearAdvance(); });
   $('soundBtn').addEventListener('click', () => { state.sound = !state.sound; save(); syncControls(); if (state.sound) sfx.tap(); });
   $('prevBtn').addEventListener('click', prev); $('nextBtn').addEventListener('click', next);
