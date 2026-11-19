@@ -10,11 +10,26 @@ const store = {
   get(k) { try { return storageOK ? localStorage.getItem(NS + k) : (mem.get(k) ?? null); } catch (e) { return mem.get(k) ?? null; } },
   set(k, v) { try { storageOK ? localStorage.setItem(NS + k, v) : mem.set(k, v); } catch (e) { mem.set(k, v); } }
 };
-const state = { mode: 'all', ticket: 1, topic: '', index: 0, showAnswer: false, auto: true, sound: true, mistakes: new Set(), done: new Set(), mastered: new Set(), session: { ok: 0, bad: 0 } };
-let allQuestions = [], topics = [], current = [], explainMap = new Map();
+const state = { cat: 'CD', mode: 'all', ticket: 1, topic: '', index: 0, showAnswer: false, auto: true, sound: true, mistakes: new Set(), done: new Set(), mastered: new Set(), session: { ok: 0, bad: 0 } };
+let allQuestions = [], topics = [], current = [], explainMap = new Map(), bankError = false;
 let answeredIndex = -1, lastChoice = -1, advanceTimer = null, topicError = false, pgRange = 14;
+const k = s => state.cat + ':' + s;
+const bankPath = () => state.cat === 'CD' ? './tickets_cd_2026.json' : './tickets_ab_2026.json';
+const topicsManifest = () => state.cat === 'CD' ? './topics.json' : './ab/topics.json';
+const topicsDir = () => state.cat === 'CD' ? './topics/' : './ab/topics/';
+const maxTicket = () => allQuestions.reduce((m, q) => Math.max(m, q.ticket || 1), 1);
 const ctxKey = (m = state.mode, t = state.ticket, tp = state.topic) => m === 'ticket' ? 'ticket:' + t : m === 'topic' ? 'topic:' + tp : m;
 const titleOf = () => state.mode === 'ticket' ? 'Билет ' + state.ticket : state.mode === 'topic' ? state.topic : state.mode === 'mistakes' ? 'Мои ошибки' : 'Все вопросы';
+function migrateLegacy() {
+  if (store.get('migrated5')) return;
+  const old = ['last', 'mistakes', 'done', 'mastered', 'daily'];
+  old.forEach(s => { const v = store.get(s); if (v !== null) store.set('CD:' + s, v); });
+  try {
+    const src = storageOK ? localStorage : null;
+    if (src) for (let i = 0; i < src.length; i++) { const key = src.key(i); if (key && key.startsWith(NS + 'p:')) store.set('CD:' + key.slice(NS.length), src.getItem(key)); }
+  } catch (e) {}
+  store.set('migrated5', '1');
+}
 function getEnt() { try { return JSON.parse(store.get('ent') || 'null'); } catch (e) { return null; } }
 function entStatus() {
   let e = getEnt();
@@ -26,38 +41,38 @@ function entStatus() {
 const entitled = () => entStatus().kind !== 'expired';
 const daysLeft = ms => Math.max(1, Math.ceil(ms / 864e5));
 const todayKey = () => new Date().toLocaleDateString('sv-SE');
-function getDaily() { try { return JSON.parse(store.get('daily') || '{}'); } catch (e) { return {}; } }
+function getDaily() { try { return JSON.parse(store.get('daily:' + state.cat) || '{}'); } catch (e) { return {}; } }
 function recordDaily(ok) {
-  const d = getDaily(), k = todayKey(), r = d[k] || { a: 0, c: 0, w: 0 };
-  r.a++; ok ? r.c++ : r.w++; d[k] = r;
-  const keys = Object.keys(d).sort(); while (keys.length > 90) delete d[keys.shift()];
-  store.set('daily', JSON.stringify(d));
+  const d = getDaily(), key = todayKey(), r = d[key] || { a: 0, c: 0, w: 0 };
+  r.a++; ok ? r.c++ : r.w++; d[key] = r;
+  const keys = Object.keys(d).sort(); if (keys.length > 90) keys.slice(0, keys.length - 90).forEach(x => delete d[x]);
+  store.set('daily:' + state.cat, JSON.stringify(d));
 }
 function streak(d) {
   let s = 0, dt = new Date();
   if (!d[todayKey()] || !d[todayKey()].a) dt.setDate(dt.getDate() - 1);
-  for (;;) { const k = dt.toLocaleDateString('sv-SE'); if (d[k] && d[k].a) { s++; dt.setDate(dt.getDate() - 1); } else break; }
+  for (;;) { const key = dt.toLocaleDateString('sv-SE'); if (d[key] && d[key].a) { s++; dt.setDate(dt.getDate() - 1); } else break; }
   return s;
 }
 function save() {
-  store.set('p:' + ctxKey(), String(state.index));
-  store.set('last', JSON.stringify({ mode: state.mode, ticket: state.ticket, topic: state.topic }));
+  store.set(k('p:' + ctxKey()), String(state.index));
+  store.set(k('last'), JSON.stringify({ mode: state.mode, ticket: state.ticket, topic: state.topic }));
   store.set('prefs', JSON.stringify({ showAnswer: state.showAnswer, auto: state.auto, sound: state.sound }));
-  store.set('mistakes', JSON.stringify([...state.mistakes]));
-  store.set('done', JSON.stringify([...state.done]));
-  store.set('mastered', JSON.stringify([...state.mastered]));
+  store.set(k('mistakes'), JSON.stringify([...state.mistakes]));
+  store.set(k('done'), JSON.stringify([...state.done]));
+  store.set(k('mastered'), JSON.stringify([...state.mastered]));
 }
 function load() {
   try {
-    const l = JSON.parse(store.get('last') || 'null');
+    const l = JSON.parse(store.get(k('last')) || 'null');
     if (l) { state.mode = l.mode || 'all'; state.ticket = l.ticket || 1; state.topic = l.topic || ''; }
     const p = JSON.parse(store.get('prefs') || 'null');
     if (p) { state.showAnswer = !!p.showAnswer; state.auto = p.auto !== false; state.sound = p.sound !== false; }
-    state.mistakes = new Set(JSON.parse(store.get('mistakes') || '[]'));
-    state.done = new Set(JSON.parse(store.get('done') || '[]'));
-    state.mastered = new Set(JSON.parse(store.get('mastered') || '[]'));
+    state.mistakes = new Set(JSON.parse(store.get(k('mistakes')) || '[]'));
+    state.done = new Set(JSON.parse(store.get(k('done')) || '[]'));
+    state.mastered = new Set(JSON.parse(store.get(k('mastered')) || '[]'));
   } catch (e) {}
-  state.index = parseInt(store.get('p:' + ctxKey()) || '0', 10) || 0;
+  state.index = parseInt(store.get(k('p:' + ctxKey())) || '0', 10) || 0;
   if (!entitled()) state.showAnswer = false;
 }
 let actx = null;
@@ -66,8 +81,9 @@ function tone(f, d, t, g, w) { const c = ac(); if (!c || !state.sound) return; c
 const sfx = { tap: () => tone(520, .06, 'triangle', .05), ok: () => { tone(660, .12); tone(880, .18, 'sine', .1, .09); }, bad: () => tone(150, .22, 'square', .06), win: () => [523, 659, 784, 1043].forEach((f, i) => tone(f, .22, 'sine', .1, i * .11)) };
 addEventListener('pointerdown', () => ac(), { once: true });
 async function loadExplanations() {
+  explainMap = new Map();
   const lists = await Promise.all(topics.map(async name => {
-    try { return await (await fetch('./topics/' + encodeURIComponent(name) + '.json')).json(); } catch (e) { return []; }
+    try { return await (await fetch(topicsDir() + encodeURIComponent(name) + '.json')).json(); } catch (e) { return []; }
   }));
   lists.forEach(arr => (arr || []).forEach(it => {
     if (!it || it.id === undefined) return;
@@ -102,9 +118,10 @@ function showExplanation(q) {
   return true;
 }
 async function loadData() {
-  try { allQuestions = await (await fetch('./tickets_cd_2026.json')).json(); }
-  catch (e) { $('questionText').textContent = 'Не удалось загрузить базу вопросов.'; return; }
-  try { topics = await (await fetch('./topics.json')).json(); } catch (e) { topics = []; }
+  bankError = false;
+  try { allQuestions = await (await fetch(bankPath())).json(); }
+  catch (e) { allQuestions = []; bankError = true; }
+  try { topics = await (await fetch(topicsManifest())).json(); } catch (e) { topics = []; }
   await loadExplanations();
   load(); syncControls(); show('home'); rebuild();
 }
@@ -114,7 +131,7 @@ async function rebuild() {
   if (state.mode === 'ticket') list = allQuestions.filter(q => q.ticket === state.ticket);
   else if (state.mode === 'mistakes') list = allQuestions.filter(q => state.mistakes.has(q.id));
   else if (state.mode === 'topic') {
-    try { const d = await (await fetch('./topics/' + encodeURIComponent(state.topic) + '.json')).json(); const ids = new Set(d.map(x => x.id)); list = allQuestions.filter(q => ids.has(q.id)); }
+    try { const d = await (await fetch(topicsDir() + encodeURIComponent(state.topic) + '.json')).json(); const ids = new Set(d.map(x => x.id)); list = allQuestions.filter(q => ids.has(q.id)); }
     catch (e) { topicError = true; list = []; }
   }
   current = list; if (state.index >= current.length) state.index = 0;
@@ -124,8 +141,17 @@ function setContext(mode, ticket, topic) {
   save(); state.mode = mode;
   if (ticket !== undefined) state.ticket = ticket;
   if (topic !== undefined) state.topic = topic;
-  state.index = parseInt(store.get('p:' + ctxKey()) || '0', 10) || 0;
+  state.index = parseInt(store.get(k('p:' + ctxKey())) || '0', 10) || 0;
   state.session = { ok: 0, bad: 0 }; save(); closeSheets(); show('quiz'); rebuild();
+}
+async function setCategory(cat) {
+  if (cat === state.cat) { closeSheets(); return; }
+  const view = document.body.dataset.view;
+  save(); state.cat = cat; store.set('cat', cat);
+  state.session = { ok: 0, bad: 0 };
+  await loadData();
+  show(view === 'home' ? 'home' : 'quiz'); rebuild(); refreshHome(); syncControls();
+  closeSheets(); toast('Категория ' + cat + (bankError ? ' · банк ещё не загружен' : ''));
 }
 function show(v) {
   ['home', 'quiz', 'progress', 'info', 'done', 'empty'].forEach(x => $(x + 'View').hidden = x !== v);
@@ -141,18 +167,21 @@ function render() {
   $('nextBtn').classList.remove('invite');
   if (!current.length) {
     show('empty');
-    $('emptyText').textContent = topicError ? 'Не удалось загрузить тему «' + state.topic + '».' : state.mode === 'mistakes' ? 'Ошибок пока нет — так держать!' : 'В этом разделе пока нет вопросов.';
-    $('emptyRetryBtn').hidden = !topicError; return;
+    $('emptyText').textContent = bankError ? 'Банк ' + state.cat + ' ещё не загружен. Добавь tickets_' + state.cat.toLowerCase() + '_2026.json и темы в assets/веб-репозиторий.' : topicError ? 'Не удалось загрузить тему «' + state.topic + '».' : state.mode === 'mistakes' ? 'Ошибок пока нет — так держать!' : 'В этом разделе пока нет вопросов.';
+    $('emptyRetryBtn').hidden = !(topicError || bankError); return;
   }
   const q = current[state.index], total = current.length, answered = answeredIndex === state.index;
   $('sectionTitle').textContent = titleOf();
   $('sectionCount').textContent = (state.index + 1) + ' / ' + total;
   $('progressFill').style.width = ((state.index + 1) / total * 100) + '%';
-  $('qChip').textContent = 'Билет ' + q.ticket;
+  $('qChip').textContent = state.cat + ' · Билет ' + q.ticket;
   $('questionText').textContent = q.text;
   const wrap = $('imageWrap'), img = $('questionImage');
-  if (q.image) { const n = String(q.image).split('/').pop(); wrap.hidden = false; img.onerror = () => { img.onerror = () => { wrap.hidden = true; }; img.src = './' + n; }; img.src = './images/' + n; }
-  else wrap.hidden = true;
+  if (q.image) {
+    const n = String(q.image).split('/').pop(); wrap.hidden = false;
+    img.onerror = () => { img.onerror = () => { img.onerror = () => { wrap.hidden = true; }; img.src = './' + n; }; img.src = './images_ab/' + n; };
+    img.src = './images/' + n;
+  } else wrap.hidden = true;
   const box = $('answers'); box.innerHTML = '';
   q.answers.forEach((a, i) => {
     const ok = a.isCorrect === true || (a.isCorrect === undefined && q.correctIndex === i);
@@ -169,10 +198,10 @@ function render() {
 function answer(i, ok, q) {
   if (answeredIndex === state.index) return;
   answeredIndex = state.index; lastChoice = i;
-  [...$('answers').children].forEach((b, k) => {
+  [...$('answers').children].forEach((b, idx) => {
     b.disabled = true;
-    const good = q.answers[k].isCorrect === true || (q.answers[k].isCorrect === undefined && q.correctIndex === k);
-    if (good) b.classList.add('correct'); else if (k === i) b.classList.add('wrong');
+    const good = q.answers[idx].isCorrect === true || (q.answers[idx].isCorrect === undefined && q.correctIndex === idx);
+    if (good) b.classList.add('correct'); else if (idx === i) b.classList.add('wrong');
   });
   if (ok) { state.session.ok++; state.mistakes.delete(q.id); state.mastered.add(q.id); sfx.ok(); }
   else { state.session.bad++; state.mistakes.add(q.id); sfx.bad(); }
@@ -191,15 +220,17 @@ function complete() {
   const s = state.session, t = s.ok + s.bad;
   $('doneTitle').textContent = state.mode === 'ticket' ? 'Билет ' + state.ticket + ' пройден!' : 'Раздел пройден!';
   $('doneStats').textContent = t ? 'Верно: ' + s.ok + ' · Ошибок: ' + s.bad + ' · Точность: ' + Math.round(s.ok / t * 100) + '%' : 'Отличная работа!';
-  $('nextSectionBtn').textContent = state.mode === 'ticket' ? 'Билет ' + (state.ticket % 40 + 1) + ' →' : state.mode === 'topic' ? 'Следующая тема →' : 'В меню';
+  $('nextSectionBtn').textContent = state.mode === 'ticket' ? 'Билет ' + (state.ticket % maxTicket() + 1) + ' →' : state.mode === 'topic' ? 'Следующая тема →' : 'В меню';
   show('done'); sfx.win(); confetti(); refreshMenu();
 }
 function refreshHome() {
   const st = entStatus(), d = getDaily();
-  $('logoSub').textContent = st.kind === 'licensed' ? '✓ Пожизненный доступ' : st.kind === 'trial' ? 'Пробный период: ' + daysLeft(st.left) + ' дн.' : 'Пробный период завершён · «Ответ» 399 ₽';
+  $('homeChip').textContent = st.kind === 'licensed' ? '✓ Пожизненный доступ' : st.kind === 'trial' ? 'Пробный период: ' + daysLeft(st.left) + ' дн.' : 'Пробный период завершён · «Ответ» 399 ₽';
   $('homeStreak').textContent = streak(d);
   $('homeToday').textContent = (d[todayKey()] || {}).a || 0;
+  $('homeSub').innerHTML = allQuestions.length + ' вопросов · ' + maxTicket() + ' билетов · ' + topics.length + ' тем.<br>Сдай на права спокойно и с удовольствием.';
   $('homeContinueBtn').textContent = 'Продолжить: ' + titleOf() + ' →';
+  document.querySelectorAll('#catSwitch button').forEach(b => b.classList.toggle('active', b.dataset.cat === state.cat));
 }
 function renderProgress() {
   const d = getDaily(), t = d[todayKey()] || { a: 0, c: 0, w: 0 };
@@ -208,10 +239,10 @@ function renderProgress() {
   $('pgStreak').textContent = streak(d);
   let total = 0; Object.values(d).forEach(r => { total += r.a; });
   $('pgTotal').textContent = total;
-  $('pgMastered').textContent = state.mastered.size + ' / ' + (allQuestions.length || 800);
+  $('pgMastered').textContent = state.mastered.size + ' / ' + (allQuestions.length || 0);
   $('pgMistakes').textContent = state.mistakes.size;
   const N = pgRange, days = [];
-  for (let i = N - 1; i >= 0; i--) { const dt = new Date(); dt.setDate(dt.getDate() - i); const k = dt.toLocaleDateString('sv-SE'); days.push({ k, r: d[k] || { a: 0 }, today: i === 0, wd: 'впвсчпс'[dt.getDay()] }); }
+  for (let i = N - 1; i >= 0; i--) { const dt = new Date(); dt.setDate(dt.getDate() - i); const key = dt.toLocaleDateString('sv-SE'); days.push({ k: key, r: d[key] || { a: 0 }, today: i === 0, wd: 'впвсчпс'[dt.getDay()] }); }
   const max = Math.max(...days.map(x => x.r.a), 1), W = N * 26, H = 130;
   let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="chart"><defs><linearGradient id="pgG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#3D5AFE"/></linearGradient></defs>';
   days.forEach((x, i) => {
@@ -225,7 +256,7 @@ function renderProgress() {
 }
 function renderInfo() {
   const st = entStatus();
-  $('infoChip').textContent = st.kind === 'licensed' ? '✓ активен' : st.kind === 'trial' ? 'Пробный период: ' + daysLeft(st.left) + ' дн.' : 'Пробный период завершён';
+  $('infoChip').textContent = st.kind === 'licensed' ? '✓ активен' : st.kind === 'trial' ? 'trial ' + daysLeft(st.left) + ' дн.' : 'trial ended';
   $('infoTrialLine').textContent = st.kind === 'licensed' ? 'Спасибо! Доступ открыт навсегда на этом устройстве.' : st.kind === 'trial' ? 'Сейчас действует бесплатный пробный период: ' + daysLeft(st.left) + ' дн. Затем кнопка «Ответ» станет платной.' : 'Пробный период завершён. Оплати один раз — и кнопка «Ответ» твоя навсегда.';
   const lic = st.e && st.e.license;
   $('payBlock').hidden = !!lic; $('receiptPanel').hidden = !lic;
@@ -244,7 +275,7 @@ async function submitPay(e) {
     const lic = await P.pay(card);
     const ent = getEnt() || { trialStart: Date.now() }; ent.license = lic; store.set('ent', JSON.stringify(ent));
     sfx.win(); confetti(); toast('Доступ активирован пожизненно 🎉');
-    syncControls(); renderInfo(); refreshMenu(); refreshHome();
+    syncControls(); renderInfo(); refreshMenu();
   } catch (err) {
     $('payError').hidden = false;
     $('payError').textContent = err.code === 'declined' ? 'Банк отклонил платёж. Попробуй другую карту.' : err.code === 'backend_required' ? 'Боевой эквайринг требует подключения бэкенда.' : 'Платёж не прошёл. Проверь данные карты.';
@@ -252,32 +283,34 @@ async function submitPay(e) {
   } finally { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = 'Оплатить ' + P.PRICE + ' ₽'; }
 }
 function openSheet(id) { closeSheets(); $('scrim').hidden = false; $(id).hidden = false; if (id === 'ticketSheet') buildTickets(); if (id === 'topicSheet') buildTopics(); if (id === 'menuSheet') refreshMenu(); }
-function closeSheets() { $('scrim').hidden = true; ['menuSheet', 'ticketSheet', 'topicSheet'].forEach(i => $(i).hidden = true); }
+function closeSheets() { $('scrim').hidden = true; ['menuSheet', 'ticketSheet', 'topicSheet', 'catSheet'].forEach(i => $(i).hidden = true); }
 function refreshMenu() {
-  const b = (k, tot) => { const v = parseInt(store.get('p:' + k) || '0', 10) || 0; return v > 0 ? 'с ' + (v + 1) + (tot ? '/' + tot : '') : ''; };
-  $('badgeAll').textContent = b('all', allQuestions.length);
-  $('badgeTicket').textContent = [...state.done].filter(k => k.startsWith('ticket:')).length ? '✓ ' + [...state.done].filter(k => k.startsWith('ticket:')).length : '';
-  $('badgeTopic').textContent = b('topic:' + state.topic);
+  const b = (key, tot) => { const v = parseInt(store.get(k(key)) || '0', 10) || 0; return v > 0 ? 'с ' + (v + 1) + (tot ? '/' + tot : '') : ''; };
+  $('badgeAll').textContent = b('p:all', allQuestions.length);
+  $('badgeTicket').textContent = [...state.done].filter(x => x.startsWith('ticket:')).length ? '✓ ' + [...state.done].filter(x => x.startsWith('ticket:')).length : '';
+  $('badgeTopic').textContent = b('p:topic:' + state.topic);
   $('badgeMistakes').textContent = state.mistakes.size ? state.mistakes.size + ' шт.' : '';
   $('badgeProgress').textContent = ((getDaily()[todayKey()] || {}).a || 0) + ' сегодня';
+  $('badgeCat').textContent = state.cat;
   const st = entStatus();
   $('badgeInfo').textContent = st.kind === 'licensed' ? '✓' : st.kind === 'trial' ? daysLeft(st.left) + ' дн.' : '399 ₽';
 }
 function buildTickets() {
   const g = $('ticketGrid'); g.innerHTML = '';
-  for (let n = 1; n <= 40; n++) {
-    const b = document.createElement('button'); b.className = 'ticket-btn'; b.textContent = n;
-    const k = 'ticket:' + n, p = parseInt(store.get('p:' + k) || '0', 10) || 0;
-    if (state.done.has(k)) b.classList.add('done'); else if (p > 0) b.classList.add('started');
-    if (state.mode === 'ticket' && state.ticket === n) b.classList.add('current');
-    b.addEventListener('click', () => { sfx.tap(); setContext('ticket', n); }); g.appendChild(b);
+  const n = maxTicket();
+  for (let i = 1; i <= n; i++) {
+    const b = document.createElement('button'); b.className = 'ticket-btn'; b.textContent = i;
+    const key = 'ticket:' + i, p = parseInt(store.get(k('p:' + key)) || '0', 10) || 0;
+    if (state.done.has(key)) b.classList.add('done'); else if (p > 0) b.classList.add('started');
+    if (state.mode === 'ticket' && state.ticket === i) b.classList.add('current');
+    b.addEventListener('click', () => { sfx.tap(); setContext('ticket', i); }); g.appendChild(b);
   }
 }
 function buildTopics() {
   const l = $('topicList'); l.innerHTML = '';
   topics.forEach(name => {
     const b = document.createElement('button'); b.className = 'topic-btn';
-    const p = parseInt(store.get('p:topic:' + name) || '0', 10) || 0;
+    const p = parseInt(store.get(k('p:topic:' + name)) || '0', 10) || 0;
     b.innerHTML = '<span></span>' + (p > 0 ? '<span class="mi-badge">с ' + (p + 1) + '</span>' : '');
     b.firstElementChild.textContent = name;
     b.addEventListener('click', () => { sfx.tap(); setContext('topic', undefined, name); }); l.appendChild(b);
@@ -306,20 +339,26 @@ function syncControls() {
   $('soundBtn').querySelector('.ic-on').toggleAttribute('hidden', !state.sound);
   $('soundBtn').querySelector('.ic-off').toggleAttribute('hidden', state.sound);
   $('soundBtn').setAttribute('aria-label', state.sound ? 'Звук включён' : 'Звук выключен');
+  document.querySelectorAll('#catSwitch button').forEach(b => b.classList.toggle('active', b.dataset.cat === state.cat));
 }
 document.addEventListener('DOMContentLoaded', () => {
+  state.cat = store.get('cat') === 'AB' ? 'AB' : 'CD';
+  migrateLegacy();
   loadData();
   $('homeImg').addEventListener('error', () => { $('homeImg').hidden = true; $('homeFallback').toggleAttribute('hidden', false); });
   $('logoBtn').addEventListener('click', () => { sfx.tap(); show('home'); });
   $('menuBtn').addEventListener('click', () => { sfx.tap(); openSheet('menuSheet'); });
   $('homeMenuBtn').addEventListener('click', () => openSheet('menuSheet'));
   $('homeContinueBtn').addEventListener('click', () => { show('quiz'); rebuild(); });
+  document.querySelectorAll('#catSwitch button').forEach(b => b.addEventListener('click', () => { sfx.tap(); setCategory(b.dataset.cat); }));
+  document.querySelectorAll('[data-catpick]').forEach(b => b.addEventListener('click', () => { sfx.tap(); setCategory(b.dataset.catpick); }));
   $('scrim').addEventListener('click', closeSheets);
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
   document.querySelectorAll('.menu-item').forEach(b => b.addEventListener('click', () => {
     const n = b.dataset.nav; sfx.tap();
     if (n === 'ticket') openSheet('ticketSheet');
     else if (n === 'topic') openSheet('topicSheet');
+    else if (n === 'cat') openSheet('catSheet');
     else if (n === 'home' || n === 'progress' || n === 'info') { closeSheets(); show(n); }
     else setContext(n);
   }));
@@ -328,12 +367,12 @@ document.addEventListener('DOMContentLoaded', () => {
   $('autoAdvance').addEventListener('change', e => { state.auto = e.target.checked; save(); if (!state.auto) clearAdvance(); });
   $('soundBtn').addEventListener('click', () => { state.sound = !state.sound; save(); syncControls(); if (state.sound) sfx.tap(); });
   $('prevBtn').addEventListener('click', prev); $('nextBtn').addEventListener('click', next);
-  $('resetSectionBtn').addEventListener('click', () => { const k = ctxKey(), old = state.index; state.index = 0; state.done.delete(k); save(); rebuild(); closeSheets(); toast('Прогресс раздела сброшен', 'Вернуть', () => { state.index = old; save(); rebuild(); }); });
+  $('resetSectionBtn').addEventListener('click', () => { const key = ctxKey(), old = state.index; state.index = 0; state.done.delete(key); save(); rebuild(); closeSheets(); toast('Прогресс раздела сброшен', 'Вернуть', () => { state.index = old; save(); rebuild(); }); });
   $('repeatBtn').addEventListener('click', () => { state.index = 0; state.session = { ok: 0, bad: 0 }; answeredIndex = -1; save(); show('quiz'); render(); });
-  $('nextSectionBtn').addEventListener('click', () => { if (state.mode === 'ticket') setContext('ticket', state.ticket % 40 + 1); else if (state.mode === 'topic') { const i = topics.indexOf(state.topic); setContext('topic', undefined, topics[(i + 1) % topics.length] || state.topic); } else openSheet('menuSheet'); });
+  $('nextSectionBtn').addEventListener('click', () => { if (state.mode === 'ticket') setContext('ticket', state.ticket % maxTicket() + 1); else if (state.mode === 'topic') { const i = topics.indexOf(state.topic); setContext('topic', undefined, topics[(i + 1) % topics.length] || state.topic); } else openSheet('menuSheet'); });
   $('doneMenuBtn').addEventListener('click', () => openSheet('menuSheet'));
   $('emptyMenuBtn').addEventListener('click', () => openSheet('menuSheet'));
-  $('emptyRetryBtn').addEventListener('click', rebuild);
+  $('emptyRetryBtn').addEventListener('click', () => loadData().then(() => { show('quiz'); rebuild(); }));
   $('imageWrap').addEventListener('click', () => { $('lightboxImg').src = $('questionImage').src; $('lightbox').hidden = false; });
   $('lightbox').addEventListener('click', () => { $('lightbox').hidden = true; });
   $('pgRange7').addEventListener('click', () => { pgRange = 7; renderProgress(); });
