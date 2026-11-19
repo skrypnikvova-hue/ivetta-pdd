@@ -11,7 +11,7 @@ const store = {
   get(k) { try { return storageOK ? localStorage.getItem(NS + k) : (mem.get(k) ?? null); } catch (e) { return mem.get(k) ?? null; } },
   set(k, v) { try { storageOK ? localStorage.setItem(NS + k, v) : mem.set(k, v); } catch (e) { mem.set(k, v); } }
 };
-const state = { cat: 'CD', mode: 'all', ticket: 1, topic: '', index: 0, showAnswer: false, auto: true, sound: true, mistakes: new Set(), done: new Set(), mastered: new Set(), session: { ok: 0, bad: 0 }, exam: null };
+const state = { cat: 'CD', mode: 'all', ticket: 1, topic: '', index: 0, showAnswer: false, auto: true, sound: true, mistakes: new Set(), done: new Set(), mastered: new Set(), session: { ok: 0, bad: 0 }, exam: null, ledger: {} };
 let allQuestions = [], topics = [], current = [], explainMap = new Map(), bankError = false;
 let answeredIndex = -1, lastChoice = -1, advanceTimer = null, examTimer = null, topicError = false, pgRange = 14; let lastTickSec = -1;
 const k = s => state.cat + ':' + s;
@@ -66,6 +66,7 @@ function save() {
   store.set(k('mistakes'), JSON.stringify([...state.mistakes]));
   store.set(k('done'), JSON.stringify([...state.done]));
   store.set(k('mastered'), JSON.stringify([...state.mastered]));
+  store.set(k('ans:' + ctxKey()), JSON.stringify(state.ledger));
 }
 function load() {
   try {
@@ -148,6 +149,7 @@ async function loadData() {
 }
 async function rebuild() {
   clearAdvance(); topicError = false;
+  try { state.ledger = JSON.parse(store.get(k('ans:' + ctxKey())) || '{}'); } catch (e) { state.ledger = {}; }
   let list = allQuestions;
   if (state.mode === 'exam') list = state.exam ? state.exam.ids.map(id => allQuestions.find(q => q.id === id)).filter(Boolean) : [];
   else if (state.mode === 'ticket') list = allQuestions.filter(q => q.ticket === state.ticket);
@@ -244,7 +246,10 @@ function render() {
     $('emptyText').textContent = bankError ? 'Банк ' + state.cat + ' ещё не загружен. Добавь tickets_' + state.cat.toLowerCase() + '_2026.json и темы.' : topicError ? 'Не удалось загрузить тему «' + state.topic + '».' : state.mode === 'mistakes' ? 'Ошибок пока нет — так держать!' : 'В этом разделе пока нет вопросов.';
     $('emptyRetryBtn').hidden = !(topicError || bankError); return;
   }
-  const q = current[state.index], total = current.length, answered = answeredIndex === state.index;
+  const q = current[state.index], total = current.length;
+  const rec = state.mode !== 'exam' ? state.ledger[q.id] : null;
+  if (rec) { answeredIndex = state.index; lastChoice = rec.c; }
+  const answered = answeredIndex === state.index;
   $('sectionTitle').textContent = titleOf();
   $('sectionCount').textContent = (state.index + 1) + ' / ' + total;
   $('progressFill').style.width = ((state.index + 1) / total * 100) + '%';
@@ -279,6 +284,7 @@ function render() {
 }
 function answer(i, ok, q) {
   if (answeredIndex === state.index) return;
+  if (state.mode !== 'exam' && state.ledger[q.id]) return;
   answeredIndex = state.index; lastChoice = i;
   [...$('answers').children].forEach((b, idx) => {
     b.disabled = true;
@@ -287,6 +293,7 @@ function answer(i, ok, q) {
   });
   if (ok) { state.session.ok++; state.mistakes.delete(q.id); state.mastered.add(q.id); sfx.ok(); }
   else { state.session.bad++; state.mistakes.add(q.id); sfx.bad(); }
+  if (state.mode !== 'exam') state.ledger[q.id] = { c: i, ok: ok };
   recordDaily(ok); save();
   if (state.mode === 'exam' && state.exam) {
     if (!ok) state.exam.wrong.push(q.id);
@@ -479,8 +486,8 @@ document.addEventListener('DOMContentLoaded', () => {
   $('autoAdvance').addEventListener('change', e => { state.auto = e.target.checked; save(); if (!state.auto) clearAdvance(); });
   $('soundBtn').addEventListener('click', () => { state.sound = !state.sound; save(); syncControls(); if (state.sound) sfx.tap(); });
   $('prevBtn').addEventListener('click', prev); $('nextBtn').addEventListener('click', next);
-  $('resetSectionBtn').addEventListener('click', () => { const key = ctxKey(), old = state.index; state.index = 0; state.done.delete(key); save(); rebuild(); closeSheets(); toast('Прогресс раздела сброшен', 'Вернуть', () => { state.index = old; save(); rebuild(); }); });
-  $('repeatBtn').addEventListener('click', () => { state.index = 0; state.session = { ok: 0, bad: 0 }; answeredIndex = -1; save(); show('quiz'); render(); });
+  $('resetSectionBtn').addEventListener('click', () => { const key = ctxKey(), old = state.index; state.index = 0; state.done.delete(key); state.ledger = {}; save(); rebuild(); closeSheets(); toast('Прогресс раздела сброшен', 'Вернуть', () => { state.index = old; save(); rebuild(); }); });
+  $('repeatBtn').addEventListener('click', () => { state.index = 0; state.session = { ok: 0, bad: 0 }; answeredIndex = -1; state.ledger = {}; save(); show('quiz'); render(); });
   $('nextSectionBtn').addEventListener('click', () => { if (state.mode === 'ticket') setContext('ticket', state.ticket % maxTicket() + 1); else if (state.mode === 'topic') { const i = topics.indexOf(state.topic); setContext('topic', undefined, topics[(i + 1) % topics.length] || state.topic); } else openSheet('menuSheet'); });
   $('doneMenuBtn').addEventListener('click', () => openSheet('menuSheet'));
   $('emptyMenuBtn').addEventListener('click', () => openSheet('menuSheet'));
