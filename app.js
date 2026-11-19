@@ -3,6 +3,7 @@ const NS = 'ivetta.v3.';
 const $ = id => document.getElementById(id);
 const P = window.IvettaPayments;
 const TRIAL_MS = P.TRIAL_DAYS * 864e5;
+const EXAM_Q = 20, EXAM_MIN = 20, EXAM_MAX_WRONG = 2;
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const mem = new Map(); let storageOK = true;
 try { localStorage.setItem(NS + 't', '1'); localStorage.removeItem(NS + 't'); } catch (e) { storageOK = false; }
@@ -10,20 +11,22 @@ const store = {
   get(k) { try { return storageOK ? localStorage.getItem(NS + k) : (mem.get(k) ?? null); } catch (e) { return mem.get(k) ?? null; } },
   set(k, v) { try { storageOK ? localStorage.setItem(NS + k, v) : mem.set(k, v); } catch (e) { mem.set(k, v); } }
 };
-const state = { cat: 'CD', mode: 'all', ticket: 1, topic: '', index: 0, showAnswer: false, auto: true, sound: true, mistakes: new Set(), done: new Set(), mastered: new Set(), session: { ok: 0, bad: 0 } };
+const state = { cat: 'CD', mode: 'all', ticket: 1, topic: '', index: 0, showAnswer: false, auto: true, sound: true, mistakes: new Set(), done: new Set(), mastered: new Set(), session: { ok: 0, bad: 0 }, exam: null };
 let allQuestions = [], topics = [], current = [], explainMap = new Map(), bankError = false;
-let answeredIndex = -1, lastChoice = -1, advanceTimer = null, topicError = false, pgRange = 14;
+let answeredIndex = -1, lastChoice = -1, advanceTimer = null, examTimer = null, topicError = false, pgRange = 14;
 const k = s => state.cat + ':' + s;
+const examKey = () => 'exam:' + state.cat;
+const historyKey = () => 'exams:' + state.cat;
 const bankPath = () => state.cat === 'CD' ? './tickets_cd_2026.json' : './tickets_ab_2026.json';
 const topicsManifest = () => state.cat === 'CD' ? './topics.json' : './ab/topics.json';
 const topicsDir = () => state.cat === 'CD' ? './topics/' : './ab/topics/';
 const maxTicket = () => allQuestions.reduce((m, q) => Math.max(m, q.ticket || 1), 1);
 const ctxKey = (m = state.mode, t = state.ticket, tp = state.topic) => m === 'ticket' ? 'ticket:' + t : m === 'topic' ? 'topic:' + tp : m;
-const titleOf = () => state.mode === 'ticket' ? 'Билет ' + state.ticket : state.mode === 'topic' ? state.topic : state.mode === 'mistakes' ? 'Мои ошибки' : 'Все вопросы';
+const titleOf = () => state.mode === 'exam' ? 'Экзамен' : state.mode === 'ticket' ? 'Билет ' + state.ticket : state.mode === 'topic' ? state.topic : state.mode === 'mistakes' ? 'Мои ошибки' : 'Все вопросы';
+const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
 function migrateLegacy() {
   if (store.get('migrated5')) return;
-  const old = ['last', 'mistakes', 'done', 'mastered', 'daily'];
-  old.forEach(s => { const v = store.get(s); if (v !== null) store.set('CD:' + s, v); });
+  ['last', 'mistakes', 'done', 'mastered', 'daily'].forEach(s => { const v = store.get(s); if (v !== null) store.set('CD:' + s, v); });
   try {
     const src = storageOK ? localStorage : null;
     if (src) for (let i = 0; i < src.length; i++) { const key = src.key(i); if (key && key.startsWith(NS + 'p:')) store.set('CD:' + key.slice(NS.length), src.getItem(key)); }
@@ -54,6 +57,8 @@ function streak(d) {
   for (;;) { const key = dt.toLocaleDateString('sv-SE'); if (d[key] && d[key].a) { s++; dt.setDate(dt.getDate() - 1); } else break; }
   return s;
 }
+function getHistory() { try { return JSON.parse(store.get(historyKey()) || '[]'); } catch (e) { return []; } }
+function saveExam() { store.set(examKey(), state.exam ? JSON.stringify(state.exam) : 'null'); }
 function save() {
   store.set(k('p:' + ctxKey()), String(state.index));
   store.set(k('last'), JSON.stringify({ mode: state.mode, ticket: state.ticket, topic: state.topic }));
@@ -74,6 +79,11 @@ function load() {
   } catch (e) {}
   state.index = parseInt(store.get(k('p:' + ctxKey())) || '0', 10) || 0;
   if (!entitled()) state.showAnswer = false;
+  state.exam = null;
+  try {
+    const ex = JSON.parse(store.get(examKey()) || 'null');
+    if (ex && Array.isArray(ex.ids) && ex.ids.length && ex.deadline > Date.now()) { state.exam = ex; state.mode = 'exam'; state.index = ex.i || 0; }
+  } catch (e) {}
 }
 let actx = null;
 function ac() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (actx && actx.state === 'suspended') actx.resume(); return actx; }
@@ -123,12 +133,15 @@ async function loadData() {
   catch (e) { allQuestions = []; bankError = true; }
   try { topics = await (await fetch(topicsManifest())).json(); } catch (e) { topics = []; }
   await loadExplanations();
-  load(); syncControls(); show('home'); rebuild();
+  load(); syncControls();
+  if (state.exam) { show('quiz'); rebuild(); startExamTimer(); }
+  else { show('home'); rebuild(); }
 }
 async function rebuild() {
   clearAdvance(); topicError = false;
   let list = allQuestions;
-  if (state.mode === 'ticket') list = allQuestions.filter(q => q.ticket === state.ticket);
+  if (state.mode === 'exam') list = state.exam ? state.exam.ids.map(id => allQuestions.find(q => q.id === id)).filter(Boolean) : [];
+  else if (state.mode === 'ticket') list = allQuestions.filter(q => q.ticket === state.ticket);
   else if (state.mode === 'mistakes') list = allQuestions.filter(q => state.mistakes.has(q.id));
   else if (state.mode === 'topic') {
     try { const d = await (await fetch(topicsDir() + encodeURIComponent(state.topic) + '.json')).json(); const ids = new Set(d.map(x => x.id)); list = allQuestions.filter(q => ids.has(q.id)); }
@@ -149,12 +162,59 @@ async function setCategory(cat) {
   const view = document.body.dataset.view;
   save(); state.cat = cat; store.set('cat', cat);
   state.session = { ok: 0, bad: 0 };
+  clearInterval(examTimer);
   await loadData();
   show(view === 'home' ? 'home' : 'quiz'); rebuild(); refreshHome(); syncControls();
   closeSheets(); toast('Категория ' + cat + (bankError ? ' · банк ещё не загружен' : ''));
 }
+function startExam(resume) {
+  let ex = null;
+  if (resume) { try { const p = JSON.parse(store.get(examKey()) || 'null'); if (p && p.deadline > Date.now() && p.ids && p.ids.length) ex = p; } catch (e) {} }
+  if (!ex) {
+    if (!allQuestions.length) { toast('Банк ' + state.cat + ' ещё не загружен'); return; }
+    const ids = allQuestions.map(q => q.id);
+    for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = ids[i]; ids[i] = ids[j]; ids[j] = t; }
+    ex = { ids: ids.slice(0, EXAM_Q), i: 0, wrong: [], deadline: Date.now() + EXAM_MIN * 60000 };
+  }
+  state.exam = ex; state.mode = 'exam'; state.index = ex.i || 0;
+  saveExam(); save(); closeSheets(); show('quiz'); rebuild(); startExamTimer(); sfx.tap();
+}
+function startExamTimer() { clearInterval(examTimer); examTimer = setInterval(tick, 1000); tick(); }
+function tick() {
+  if (!state.exam) return;
+  const left = state.exam.deadline - Date.now();
+  if (left <= 0) { finishExam(false, 'Время вышло'); return; }
+  const el = $('examTime');
+  if (el) { el.textContent = fmt(left); el.classList.toggle('low', left < 60000); }
+}
+function finishExam(pass, reason) {
+  clearInterval(examTimer); clearAdvance();
+  const ex = state.exam; if (!ex) return;
+  const hist = getHistory();
+  hist.push({ at: Date.now(), pass: pass, ok: ex.ids.length - ex.wrong.length, bad: ex.wrong.length, secs: Math.round((EXAM_MIN * 60000 - (ex.deadline - Date.now())) / 1000) });
+  while (hist.length > 20) hist.shift();
+  store.set(historyKey(), JSON.stringify(hist));
+  const wrongIds = ex.wrong.slice();
+  state.exam = null; saveExam(); answeredIndex = -1;
+  $('exBadge').textContent = pass ? '🏆' : '💥';
+  $('exTitle').textContent = pass ? 'Экзамен сдан!' : 'Экзамен не сдан';
+  $('exStats').textContent = (reason ? reason + ' · ' : '') + 'верно ' + (ex.ids.length - wrongIds.length) + ' из ' + ex.ids.length + ' · ошибок ' + wrongIds.length + ' · время ' + fmt((EXAM_MIN * 60000 - (ex.deadline - Date.now())));
+  const rv = $('exReview'); rv.innerHTML = '';
+  if (!wrongIds.length) { const p = document.createElement('p'); p.textContent = 'Без ошибок — чисто!'; rv.appendChild(p); }
+  wrongIds.forEach(id => {
+    const q = allQuestions.find(x => x.id === id); if (!q) return;
+    const item = document.createElement('div'); item.className = 'ex-review-item';
+    const b = document.createElement('b'); b.textContent = q.text; item.appendChild(b);
+    const ok = document.createElement('div'); ok.className = 'ok'; ok.textContent = '✓ ' + (q.answers[correctIndex(q)] || {}).text; item.appendChild(ok);
+    const tip = explanationFor(q);
+    if (tip) { const t = document.createElement('div'); t.className = 'tip'; t.textContent = tip; item.appendChild(t); }
+    rv.appendChild(item);
+  });
+  show('examResult'); refreshMenu();
+  if (pass) { sfx.win(); confetti(); } else sfx.bad();
+}
 function show(v) {
-  ['home', 'quiz', 'progress', 'info', 'done', 'empty'].forEach(x => $(x + 'View').hidden = x !== v);
+  ['home', 'quiz', 'progress', 'info', 'done', 'empty', 'examResult'].forEach(x => $(x + 'View').hidden = x !== v);
   document.body.dataset.view = v;
   $('appbarMid').style.visibility = v === 'quiz' ? 'visible' : 'hidden';
   if (v === 'home') refreshHome();
@@ -165,16 +225,23 @@ function show(v) {
 function render() {
   const oldEx = document.getElementById('explainBox'); if (oldEx) oldEx.remove();
   $('nextBtn').classList.remove('invite');
+  const isExam = state.mode === 'exam';
+  $('examHud').hidden = !isExam;
   if (!current.length) {
     show('empty');
-    $('emptyText').textContent = bankError ? 'Банк ' + state.cat + ' ещё не загружен. Добавь tickets_' + state.cat.toLowerCase() + '_2026.json и темы в assets/веб-репозиторий.' : topicError ? 'Не удалось загрузить тему «' + state.topic + '».' : state.mode === 'mistakes' ? 'Ошибок пока нет — так держать!' : 'В этом разделе пока нет вопросов.';
+    $('emptyText').textContent = bankError ? 'Банк ' + state.cat + ' ещё не загружен. Добавь tickets_' + state.cat.toLowerCase() + '_2026.json и темы.' : topicError ? 'Не удалось загрузить тему «' + state.topic + '».' : state.mode === 'mistakes' ? 'Ошибок пока нет — так держать!' : 'В этом разделе пока нет вопросов.';
     $('emptyRetryBtn').hidden = !(topicError || bankError); return;
   }
   const q = current[state.index], total = current.length, answered = answeredIndex === state.index;
   $('sectionTitle').textContent = titleOf();
   $('sectionCount').textContent = (state.index + 1) + ' / ' + total;
   $('progressFill').style.width = ((state.index + 1) / total * 100) + '%';
-  $('qChip').textContent = state.cat + ' · Билет ' + q.ticket;
+  $('qChip').textContent = isExam ? 'Экзамен' : state.cat + ' · Билет ' + q.ticket;
+  if (isExam && state.exam) {
+    tick();
+    $('examDots').innerHTML = Array.from({ length: EXAM_MAX_WRONG + 1 }, (_, i) => '<i class="' + (i < state.exam.wrong.length ? 'hit' : '') + '"></i>').join('');
+    $('examLeft').textContent = 'вопрос ' + (state.index + 1) + ' из ' + total;
+  }
   $('questionText').textContent = q.text;
   const wrap = $('imageWrap'), img = $('questionImage');
   if (q.image) {
@@ -188,11 +255,12 @@ function render() {
     const b = document.createElement('button'); b.className = 'answer';
     b.innerHTML = '<span class="num">' + (i + 1) + '</span><span></span>'; b.lastElementChild.textContent = a.text;
     if (answered) { b.disabled = true; if (ok) b.classList.add('correct'); else if (i === lastChoice) b.classList.add('wrong'); }
-    else if (state.showAnswer && entitled() && ok) b.classList.add('reveal');
+    else if (state.showAnswer && entitled() && ok && !isExam) b.classList.add('reveal');
     b.addEventListener('click', () => answer(i, ok, q)); box.appendChild(b);
   });
-  if (answered) showExplanation(q);
-  $('prevBtn').disabled = state.index === 0; $('nextBtn').disabled = state.index === total - 1;
+  if (answered && !isExam) showExplanation(q);
+  $('prevBtn').disabled = isExam || state.index === 0;
+  $('nextBtn').disabled = isExam ? (!answered || state.index === total - 1) : state.index === total - 1;
   $('autoBar').classList.remove('pending');
 }
 function answer(i, ok, q) {
@@ -206,6 +274,16 @@ function answer(i, ok, q) {
   if (ok) { state.session.ok++; state.mistakes.delete(q.id); state.mastered.add(q.id); sfx.ok(); }
   else { state.session.bad++; state.mistakes.add(q.id); sfx.bad(); }
   recordDaily(ok); save();
+  if (state.mode === 'exam' && state.exam) {
+    if (!ok) state.exam.wrong.push(q.id);
+    state.exam.i = state.index; saveExam();
+    $('nextBtn').disabled = state.index === current.length - 1;
+    if (state.exam.wrong.length > EXAM_MAX_WRONG) { finishExam(false, 'Превышен лимит ошибок'); return; }
+    if (state.index >= current.length - 1) { finishExam(true, ''); return; }
+    $('autoBar').classList.add('pending');
+    advanceTimer = setTimeout(() => { state.exam.i = state.index + 1; state.index = state.exam.i; answeredIndex = -1; saveExam(); render(); }, 1200);
+    return;
+  }
   const hasTip = showExplanation(q);
   if (!hasTip && state.auto) {
     $('autoBar').classList.add('pending');
@@ -213,8 +291,15 @@ function answer(i, ok, q) {
   }
 }
 function clearAdvance() { clearTimeout(advanceTimer); advanceTimer = null; $('autoBar').classList.remove('pending'); }
-function next() { clearAdvance(); if (state.index < current.length - 1) { state.index++; answeredIndex = -1; save(); render(); } else complete(); }
-function prev() { clearAdvance(); if (state.index > 0) { state.index--; answeredIndex = -1; save(); render(); } }
+function next() {
+  clearAdvance();
+  if (state.mode === 'exam') {
+    if (answeredIndex !== state.index || state.index >= current.length - 1) return;
+    state.exam.i = state.index + 1; state.index = state.exam.i; answeredIndex = -1; saveExam(); render(); return;
+  }
+  if (state.index < current.length - 1) { state.index++; answeredIndex = -1; save(); render(); } else complete();
+}
+function prev() { if (state.mode === 'exam') return; clearAdvance(); if (state.index > 0) { state.index--; answeredIndex = -1; save(); render(); } }
 function complete() {
   clearAdvance(); state.done.add(ctxKey()); save();
   const s = state.session, t = s.ok + s.bad;
@@ -230,6 +315,7 @@ function refreshHome() {
   $('homeToday').textContent = (d[todayKey()] || {}).a || 0;
   $('homeSub').innerHTML = allQuestions.length + ' вопросов · ' + maxTicket() + ' билетов · ' + topics.length + ' тем.<br>Сдай на права спокойно и с удовольствием.';
   $('homeContinueBtn').textContent = 'Продолжить: ' + titleOf() + ' →';
+  $('homeExamBtn').textContent = state.exam ? '🎯 Вернуться к экзамену · ' + fmt(state.exam.deadline - Date.now()) : '🎯 Экзамен · ' + EXAM_Q + ' вопросов · ' + EXAM_MIN + ' минут';
   document.querySelectorAll('#catSwitch button').forEach(b => b.classList.toggle('active', b.dataset.cat === state.cat));
 }
 function renderProgress() {
@@ -241,6 +327,8 @@ function renderProgress() {
   $('pgTotal').textContent = total;
   $('pgMastered').textContent = state.mastered.size + ' / ' + (allQuestions.length || 0);
   $('pgMistakes').textContent = state.mistakes.size;
+  const hist = getHistory();
+  $('pgExams').textContent = hist.filter(x => x.pass).length + ' / ' + hist.length;
   const N = pgRange, days = [];
   for (let i = N - 1; i >= 0; i--) { const dt = new Date(); dt.setDate(dt.getDate() - i); const key = dt.toLocaleDateString('sv-SE'); days.push({ k: key, r: d[key] || { a: 0 }, today: i === 0, wd: 'впвсчпс'[dt.getDay()] }); }
   const max = Math.max(...days.map(x => x.r.a), 1), W = N * 26, H = 130;
@@ -292,6 +380,8 @@ function refreshMenu() {
   $('badgeMistakes').textContent = state.mistakes.size ? state.mistakes.size + ' шт.' : '';
   $('badgeProgress').textContent = ((getDaily()[todayKey()] || {}).a || 0) + ' сегодня';
   $('badgeCat').textContent = state.cat;
+  const hist = getHistory();
+  $('badgeExam').textContent = state.exam ? 'идёт' : hist.length ? (hist[hist.length - 1].pass ? '✓ сдан' : '✗ не сдан') : '';
   const st = entStatus();
   $('badgeInfo').textContent = st.kind === 'licensed' ? '✓' : st.kind === 'trial' ? daysLeft(st.left) + ' дн.' : '399 ₽';
 }
@@ -350,6 +440,9 @@ document.addEventListener('DOMContentLoaded', () => {
   $('menuBtn').addEventListener('click', () => { sfx.tap(); openSheet('menuSheet'); });
   $('homeMenuBtn').addEventListener('click', () => openSheet('menuSheet'));
   $('homeContinueBtn').addEventListener('click', () => { show('quiz'); rebuild(); });
+  $('homeExamBtn').addEventListener('click', () => startExam(!!state.exam));
+  $('exAgain').addEventListener('click', () => startExam(false));
+  $('exMenu').addEventListener('click', () => openSheet('menuSheet'));
   document.querySelectorAll('#catSwitch button').forEach(b => b.addEventListener('click', () => { sfx.tap(); setCategory(b.dataset.cat); }));
   document.querySelectorAll('[data-catpick]').forEach(b => b.addEventListener('click', () => { sfx.tap(); setCategory(b.dataset.catpick); }));
   $('scrim').addEventListener('click', closeSheets);
@@ -359,6 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (n === 'ticket') openSheet('ticketSheet');
     else if (n === 'topic') openSheet('topicSheet');
     else if (n === 'cat') openSheet('catSheet');
+    else if (n === 'exam') startExam(!!state.exam);
     else if (n === 'home' || n === 'progress' || n === 'info') { closeSheets(); show(n); }
     else setContext(n);
   }));

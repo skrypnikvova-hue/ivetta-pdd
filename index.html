@@ -82,10 +82,12 @@
         <button class="nav-btn primary big" id="homeContinueBtn">Продолжить обучение →</button>
         <button class="nav-btn ghost big light" id="homeMenuBtn">Меню</button>
       </div>
+      <button class="nav-btn ghost big light exam-entry" id="homeExamBtn">🎯 Экзамен · 20 вопросов · 20 минут</button>
     </div>
   </section>
   <section id="quizView" hidden>
     <article class="card" id="card">
+      <div class="exam-hud" id="examHud" hidden><span class="exam-timer" id="examTime">20:00</span><span class="exam-dots" id="examDots"></span><span class="exam-left" id="examLeft"></span></div>
       <div class="q-top"><span class="chip" id="qChip">Билет 1</span><span class="lane"></span></div>
       <h1 id="questionText">Загрузка…</h1>
       <figure id="imageWrap" hidden><img id="questionImage" alt="Иллюстрация"><figcaption>Нажми, чтобы увеличить</figcaption></figure>
@@ -112,6 +114,7 @@
         <div><small>Всего ответов</small><b id="pgTotal">0</b></div>
         <div><small>Освоено вопросов</small><b id="pgMastered">0 / 800</b></div>
         <div><small>В работе над ошибками</small><b id="pgMistakes">0</b></div>
+        <div><small>Экзамены сдано / попыток</small><b id="pgExams">0 / 0</b></div>
       </div>
     </div>
   </section>
@@ -158,6 +161,9 @@
       </div>
     </div>
   </section>
+  <section id="examResultView" hidden>
+    <div class="card done-card"><div class="done-badge" id="exBadge">🏆</div><h2 id="exTitle"></h2><p id="exStats"></p><div class="ex-review" id="exReview"></div><div class="done-actions"><button class="nav-btn primary" id="exAgain">↺ Ещё раз</button><button class="nav-btn ghost" id="exMenu">Меню</button></div></div>
+  </section>
   <section id="doneView" hidden>
     <div class="card done-card"><div class="done-badge">🏁</div><h2 id="doneTitle"></h2><p id="doneStats"></p>
       <div class="done-actions"><button class="nav-btn" id="repeatBtn">↺ Повторить</button><button class="nav-btn primary" id="nextSectionBtn">Дальше →</button><button class="nav-btn ghost" id="doneMenuBtn">Меню</button></div>
@@ -178,6 +184,7 @@
     <button class="menu-item" data-nav="ticket"><span class="mi-ic">🎫</span><span class="mi-body"><b>Билеты</b><small>40 билетов</small></span><span class="mi-badge" id="badgeTicket"></span></button>
     <button class="menu-item" data-nav="topic"><span class="mi-ic">📂</span><span class="mi-body"><b>Темы</b><small>26 разделов</small></span><span class="mi-badge" id="badgeTopic"></span></button>
     <button class="menu-item" data-nav="mistakes"><span class="mi-ic">❌</span><span class="mi-body"><b>Ошибки</b><small>работа над ошибками</small></span><span class="mi-badge" id="badgeMistakes"></span></button>
+    <button class="menu-item" data-nav="exam"><span class="mi-ic">🎯</span><span class="mi-body"><b>Экзамен</b><small>20 вопросов · 20 минут · 2 ошибки</small></span><span class="mi-badge" id="badgeExam"></span></button>
     <button class="menu-item" data-nav="cat"><span class="mi-ic">🚗</span><span class="mi-body"><b>Категория</b><small>AB или CD</small></span><span class="mi-badge" id="badgeCat"></span></button>
     <div class="menu-divider"></div>
     <button class="menu-item" data-nav="progress"><span class="mi-ic">📈</span><span class="mi-body"><b>Прогресс</b><small>ежедневная статистика</small></span><span class="mi-badge" id="badgeProgress"></span></button>

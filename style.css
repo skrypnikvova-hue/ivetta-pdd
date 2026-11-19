@@ -230,3 +230,17 @@ body[data-view="home"] .appbar-mid{visibility:hidden}
 .cat-switch{display:flex;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:4px;align-self:flex-start;backdrop-filter:blur(8px)}
 .cat-switch button{padding:8px 18px;border-radius:999px;font-size:13px;font-weight:800;color:#fff;letter-spacing:.5px}
 .cat-switch button.active{background:var(--grad-brand);box-shadow:0 4px 14px rgba(61,90,254,.4)}
+.exam-hud{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.exam-timer{font-variant-numeric:tabular-nums;font-weight:900;font-size:20px;color:var(--blue-700);background:var(--blue-100);padding:6px 12px;border-radius:10px}
+.exam-timer.low{color:var(--danger);background:var(--danger-bg);animation:examPulse 1s ease-in-out infinite}
+ @keyframes examPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.exam-dots{display:flex;gap:6px}
+.exam-dots i{width:12px;height:12px;border-radius:50%;border:2px solid var(--line)}
+.exam-dots i.hit{background:var(--danger);border-color:var(--danger)}
+.exam-left{margin-left:auto;font-size:12px;font-weight:800;color:var(--muted)}
+.exam-entry{width:100%;margin-top:10px}
+.ex-review{max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin:14px 0;text-align:left}
+.ex-review-item{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px}
+.ex-review-item b{display:block;font-size:13.5px;margin-bottom:6px;line-height:1.4}
+.ex-review-item .ok{color:var(--success);font-weight:800;font-size:13px}
+.ex-review-item .tip{color:var(--muted);font-size:12.5px;margin-top:6px;line-height:1.5}
