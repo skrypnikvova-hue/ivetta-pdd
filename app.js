@@ -461,7 +461,7 @@ function syncControls() {
 document.addEventListener('DOMContentLoaded', () => {
   let deferredPrompt = null;
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (/Mac/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
   const ib = $('installBtn');
   if (!standalone) {
     window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; ib.hidden = false; });
