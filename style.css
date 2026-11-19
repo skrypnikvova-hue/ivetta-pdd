@@ -244,3 +244,5 @@ body[data-view="home"] .appbar-mid{visibility:hidden}
 .ex-review-item b{display:block;font-size:13.5px;margin-bottom:6px;line-height:1.4}
 .ex-review-item .ok{color:var(--success);font-weight:800;font-size:13px}
 .ex-review-item .tip{color:var(--muted);font-size:12.5px;margin-top:6px;line-height:1.5}
+.exam-hud{position:fixed;top:calc(var(--bar-h) + env(safe-area-inset-top) + 8px);left:50%;transform:translateX(-50%);width:min(640px,calc(100% - 28px));z-index:40;display:flex;align-items:center;gap:12px;margin-bottom:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 12px;box-shadow:var(--shadow-1)}
+#quizView.exam-active{padding-top:74px}

@@ -183,7 +183,7 @@ function startExamTimer() { clearInterval(examTimer); examTimer = setInterval(ti
 function tick() {
   if (!state.exam) return;
   const left = state.exam.deadline - Date.now();
-  if (left <= 0) { finishExam(false, 'Время вышло'); return; }
+  if (left <= 0) { if (document.body.dataset.view === 'quiz') { finishExam(false, 'Время вышло'); } else { state.exam.deadline = Date.now() - 1; saveExam(); } return; }
   const el = $('examTime');
   if (el) { el.textContent = fmt(left); el.classList.toggle('low', left < 60000); }
 }
@@ -220,7 +220,7 @@ function show(v) {
   if (v === 'home') refreshHome();
   if (v === 'progress') renderProgress();
   if (v === 'info') renderInfo();
-  if (v === 'quiz') render();
+  if (v === 'quiz') { if (state.exam && state.exam.deadline <= Date.now()) { finishExam(false, 'Время вышло'); return; } render(); }
 }
 function render() {
   const oldEx = document.getElementById('explainBox'); if (oldEx) oldEx.remove();
