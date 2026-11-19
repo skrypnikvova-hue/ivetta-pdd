@@ -166,7 +166,7 @@ function renderProgress() {
   $('pgMastered').textContent = state.mastered.size + ' / ' + (allQuestions.length || 800);
   $('pgMistakes').textContent = state.mistakes.size;
   const N = pgRange, days = [];
-  for (let i = N - 1; i >= 0; i--) { const dt = new Date(); dt.setDate(dt.getDate() - i); const k = dt.toLocaleDateString('sv-SE'); days.push({ k, r: d[k] || { a: 0 }, today: i === 0, wd: 'впсрчптсб'[dt.getDay()] }); }
+  for (let i = N - 1; i >= 0; i--) { const dt = new Date(); dt.setDate(dt.getDate() - i); const k = dt.toLocaleDateString('sv-SE'); days.push({ k, r: d[k] || { a: 0 }, today: i === 0, wd: 'впвсчпс'[dt.getDay()] }); }
   const max = Math.max(...days.map(x => x.r.a), 1), W = N * 26, H = 130;
   let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="chart"><defs><linearGradient id="pgG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#3D5AFE"/></linearGradient></defs>';
   days.forEach((x, i) => {
@@ -244,7 +244,7 @@ let cRAF = null;
 function confetti() {
   if (REDUCED) return;
   const cv = $('confetti'), ctx = cv.getContext('2d');
-  cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; ctx.scale(devicePixelRatio, devicePixelRatio);
+  cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
   const cols = ['#8B5CF6', '#3D5AFE', '#16A34A', '#F59E0B', '#D7263D', '#0EA5A5'];
   const ps = Array.from({ length: 130 }, () => ({ x: innerWidth / 2 + (Math.random() - .5) * 120, y: innerHeight * .35, vx: (Math.random() - .5) * 9, vy: -Math.random() * 11 - 3, s: Math.random() * 7 + 4, r: Math.random() * Math.PI, vr: (Math.random() - .5) * .3, c: cols[Math.random() * cols.length | 0], life: 1 }));
   cancelAnimationFrame(cRAF); const t0 = performance.now();
