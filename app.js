@@ -303,12 +303,13 @@ function syncControls() {
   $('answerSwitch').classList.toggle('locked', !ok);
   $('switchLock').hidden = ok;
   $('autoAdvance').checked = state.auto;
-  $('soundBtn').querySelector('.ic-on').hidden = !state.sound;
-  $('soundBtn').querySelector('.ic-off').hidden = state.sound;
+  $('soundBtn').querySelector('.ic-on').toggleAttribute('hidden', !state.sound);
+  $('soundBtn').querySelector('.ic-off').toggleAttribute('hidden', state.sound);
+  $('soundBtn').setAttribute('aria-label', state.sound ? 'Звук включён' : 'Звук выключен');
 }
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
-  $('homeImg').addEventListener('error', () => { $('homeImg').hidden = true; $('homeFallback').hidden = false; });
+  $('homeImg').addEventListener('error', () => { $('homeImg').hidden = true; $('homeFallback').toggleAttribute('hidden', false); });
   $('logoBtn').addEventListener('click', () => { sfx.tap(); show('home'); });
   $('menuBtn').addEventListener('click', () => { sfx.tap(); openSheet('menuSheet'); });
   $('homeMenuBtn').addEventListener('click', () => openSheet('menuSheet'));
