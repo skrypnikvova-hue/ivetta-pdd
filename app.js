@@ -459,6 +459,19 @@ function syncControls() {
   document.querySelectorAll('#catSwitch button').forEach(b => b.classList.toggle('active', b.dataset.cat === state.cat));
 }
 document.addEventListener('DOMContentLoaded', () => {
+  let deferredPrompt = null;
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const ib = $('installBtn');
+  if (!standalone) {
+    window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; ib.hidden = false; });
+    window.addEventListener('appinstalled', () => { ib.hidden = true; deferredPrompt = null; toast('Приложение установлено 🎉'); });
+    if (ios) ib.hidden = false;
+    ib.addEventListener('click', async () => {
+      if (deferredPrompt) { deferredPrompt.prompt(); const ch = await deferredPrompt.userChoice; deferredPrompt = null; if (ch.outcome === 'accepted') ib.hidden = true; }
+      else toast('iPhone: Поделиться → На экран «Домой», чтобы установить Ivetta PDD');
+    });
+  }
   state.cat = store.get('cat') === 'AB' ? 'AB' : 'CD';
   migrateLegacy();
   loadData();
