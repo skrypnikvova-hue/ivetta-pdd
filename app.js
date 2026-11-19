@@ -182,6 +182,7 @@ async function setCategory(cat) {
 function startExam(resume) {
   let ex = null;
   if (resume) { try { const p = JSON.parse(store.get(examKey()) || 'null'); if (p && p.deadline > Date.now() && p.ids && p.ids.length) ex = p; } catch (e) {} }
+  if (resume && !ex) { try { const p = JSON.parse(store.get(examKey()) || 'null'); if (p && p.ids && p.ids.length && p.deadline <= Date.now()) { state.exam = p; finishExam(false, 'Время вышло'); return; } } catch (e) {} }
   if (!ex) {
     if (!allQuestions.length) { toast('Банк ' + state.cat + ' ещё не загружен'); return; }
     const ids = allQuestions.map(q => q.id);
@@ -510,7 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') { closeSheets(); $('lightbox').hidden = true; return; }
     if (!$('quizView').hidden && $('scrim').hidden) { if (e.key === 'ArrowRight') next(); else if (e.key === 'ArrowLeft') prev(); else if (/^[1-9]$/.test(e.key)) { const b = $('answers').children[+e.key - 1]; if (b && !b.disabled) b.click(); } }
   });
-  setInterval(() => { syncControls(); if (document.body.dataset.view === 'home') refreshHome(); }, 60000);
+  setInterval(() => { syncControls(); if (document.body.dataset.view === 'home') refreshHome(); if (document.body.dataset.view === 'info') renderInfo(); }, 60000);
   if (!storageOK) toast('Приватный режим: прогресс сохранится только до закрытия вкладки');
   if ('serviceWorker' in navigator) { const had = !!navigator.serviceWorker.controller; navigator.serviceWorker.register('./service-worker.js').catch(() => {}); navigator.serviceWorker.addEventListener('controllerchange', () => { if (had) location.reload(); }); }
 });
