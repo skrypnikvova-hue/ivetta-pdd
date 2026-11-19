@@ -86,7 +86,7 @@
     </div>
   </section>
   <section id="quizView" hidden>
-    <div class="exam-hud" id="examHud" hidden><span class="exam-timer" id="examTime">20:00</span><span class="exam-dots" id="examDots"></span><span class="exam-left" id="examLeft"></span></div>
+    <div class="exam-hud" id="examHud" hidden><span class="exam-timer" id="examTime">20:00</span><span class="exam-dots" id="examDots"></span><span class="exam-left" id="examLeft"></span><button class="exam-end" id="examEnd">Завершить</button><div class="exam-board" id="examBoard"></div></div>
     <article class="card" id="card">
       <div class="q-top"><span class="chip" id="qChip">Билет 1</span><span class="lane"></span></div>
       <h1 id="questionText">Загрузка…</h1>
@@ -115,6 +115,7 @@
         <div><small>Освоено вопросов</small><b id="pgMastered">0 / 800</b></div>
         <div><small>В работе над ошибками</small><b id="pgMistakes">0</b></div>
         <div><small>Экзамены сдано / попыток</small><b id="pgExams">0 / 0</b></div>
+        <div class="pg-exam-list" id="pgExamList"></div>
       </div>
     </div>
   </section>

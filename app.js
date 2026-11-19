@@ -13,7 +13,7 @@ const store = {
 };
 const state = { cat: 'CD', mode: 'all', ticket: 1, topic: '', index: 0, showAnswer: false, auto: true, sound: true, mistakes: new Set(), done: new Set(), mastered: new Set(), session: { ok: 0, bad: 0 }, exam: null };
 let allQuestions = [], topics = [], current = [], explainMap = new Map(), bankError = false;
-let answeredIndex = -1, lastChoice = -1, advanceTimer = null, examTimer = null, topicError = false, pgRange = 14;
+let answeredIndex = -1, lastChoice = -1, advanceTimer = null, examTimer = null, topicError = false, pgRange = 14; let lastTickSec = -1;
 const k = s => state.cat + ':' + s;
 const examKey = () => 'exam:' + state.cat;
 const historyKey = () => 'exams:' + state.cat;
@@ -109,6 +109,15 @@ function correctIndex(q) {
   }
   return -1;
 }
+function paintBoard() {
+  const b = $('examBoard');
+  if (!b) return;
+  if (!state.exam) { b.innerHTML = ''; return; }
+  b.innerHTML = state.exam.ids.map((id, i) => {
+    const cls = i < state.exam.i ? (state.exam.wrong.includes(id) ? 'bad' : 'ok') : i === state.exam.i ? 'cur' : 'todo';
+    return '<i class="' + cls + '" title="' + (i + 1) + '"></i>';
+  }).join('');
+}
 function showExplanation(q) {
   const tip = explanationFor(q);
   if (!tip) return false;
@@ -176,7 +185,7 @@ function startExam(resume) {
     for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = ids[i]; ids[i] = ids[j]; ids[j] = t; }
     ex = { ids: ids.slice(0, EXAM_Q), i: 0, wrong: [], deadline: Date.now() + EXAM_MIN * 60000 };
   }
-  state.exam = ex; state.mode = 'exam'; state.index = ex.i || 0;
+  state.exam = ex; state.mode = 'exam'; state.index = ex.i || 0; lastTickSec = -1;
   saveExam(); save(); closeSheets(); show('quiz'); rebuild(); startExamTimer(); sfx.tap();
 }
 function startExamTimer() { clearInterval(examTimer); examTimer = setInterval(tick, 1000); tick(); }
@@ -185,7 +194,9 @@ function tick() {
   const left = state.exam.deadline - Date.now();
   if (left <= 0) { if (document.body.dataset.view === 'quiz') { finishExam(false, 'Время вышло'); } else { state.exam.deadline = Date.now() - 1; saveExam(); } return; }
   const el = $('examTime');
-  if (el) { el.textContent = fmt(left); el.classList.toggle('low', left < 60000); }
+  if (el) { el.textContent = fmt(left); el.classList.toggle('low', left < 60000); el.classList.toggle('critical', left < 10000); }
+  const sec = Math.ceil(left / 1000);
+  if (sec <= 10 && sec !== lastTickSec) { lastTickSec = sec; sfx.tap(); }
 }
 function finishExam(pass, reason) {
   clearInterval(examTimer); clearAdvance();
@@ -242,6 +253,7 @@ function render() {
     tick();
     $('examDots').innerHTML = Array.from({ length: EXAM_MAX_WRONG + 1 }, (_, i) => '<i class="' + (i < state.exam.wrong.length ? 'hit' : '') + '"></i>').join('');
     $('examLeft').textContent = 'вопрос ' + (state.index + 1) + ' из ' + total;
+    paintBoard();
   }
   $('questionText').textContent = q.text;
   const wrap = $('imageWrap'), img = $('questionImage');
@@ -278,7 +290,7 @@ function answer(i, ok, q) {
   recordDaily(ok); save();
   if (state.mode === 'exam' && state.exam) {
     if (!ok) state.exam.wrong.push(q.id);
-    state.exam.i = state.index; saveExam();
+    state.exam.i = state.index; saveExam(); paintBoard();
     $('nextBtn').disabled = state.index === current.length - 1;
     if (state.exam.wrong.length > EXAM_MAX_WRONG) { finishExam(false, 'Превышен лимит ошибок'); return; }
     if (state.index >= current.length - 1) { finishExam(true, ''); return; }
@@ -331,6 +343,8 @@ function renderProgress() {
   $('pgMistakes').textContent = state.mistakes.size;
   const hist = getHistory();
   $('pgExams').textContent = hist.filter(x => x.pass).length + ' / ' + hist.length;
+  const pl = $('pgExamList'); pl.innerHTML = '';
+  hist.slice(-5).reverse().forEach(x => { const d = document.createElement('div'); d.className = 'pg-exam-row'; d.innerHTML = '<span class=' + (x.pass ? 'ok' : 'bad') + '>' + (x.pass ? '✓ сдан' : '✗ не сдан') + '</span><span>' + new Date(x.at).toLocaleDateString('ru-RU') + '</span><span>' + x.ok + '/' + (x.ok + x.bad) + '</span><span>' + fmt(x.secs * 1000) + '</span>'; pl.appendChild(d); });
   const N = pgRange, days = [];
   for (let i = N - 1; i >= 0; i--) { const dt = new Date(); dt.setDate(dt.getDate() - i); const key = dt.toLocaleDateString('sv-SE'); days.push({ k: key, r: d[key] || { a: 0 }, today: i === 0, wd: 'впвсчпс'[dt.getDay()] }); }
   const max = Math.max(...days.map(x => x.r.a), 1), W = N * 26, H = 130;
@@ -444,6 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('homeMenuBtn').addEventListener('click', () => openSheet('menuSheet'));
   $('homeContinueBtn').addEventListener('click', () => { show('quiz'); rebuild(); });
   $('homeExamBtn').addEventListener('click', () => startExam(!!state.exam));
+  $('examEnd').addEventListener('click', () => { if (!state.exam) return; toast('Завершить досрочно? Неотвеченные вопросы считаются ошибками', 'Завершить', () => { const ex = state.exam; const answeredCount = ex.i + (answeredIndex === ex.i ? 1 : 0); for (let i = answeredCount; i < ex.ids.length; i++) ex.wrong.push(ex.ids[i]); finishExam(ex.wrong.length <= EXAM_MAX_WRONG, 'Досрочное завершение'); }); });
   $('exAgain').addEventListener('click', () => startExam(false));
   $('exMenu').addEventListener('click', () => openSheet('menuSheet'));
   document.querySelectorAll('#catSwitch button').forEach(b => b.addEventListener('click', () => { sfx.tap(); setCategory(b.dataset.cat); }));

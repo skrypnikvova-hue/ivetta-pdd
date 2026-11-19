@@ -246,3 +246,16 @@ body[data-view="home"] .appbar-mid{visibility:hidden}
 .ex-review-item .tip{color:var(--muted);font-size:12.5px;margin-top:6px;line-height:1.5}
 .exam-hud{position:fixed;top:calc(var(--bar-h) + env(safe-area-inset-top) + 8px);left:50%;transform:translateX(-50%);width:min(640px,calc(100% - 28px));z-index:40;display:flex;align-items:center;gap:12px;margin-bottom:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 12px;box-shadow:var(--shadow-1)}
 #quizView.exam-active{padding-top:74px}
+.exam-hud{flex-wrap:wrap}
+.exam-end{margin-left:8px;padding:6px 12px;border-radius:10px;border:2px solid var(--danger);color:var(--danger);font-size:12px;font-weight:800;background:var(--danger-bg)}
+.exam-board{width:100%;display:grid;grid-template-columns:repeat(20,1fr);gap:4px;margin-top:8px}
+.exam-board i{height:8px;border-radius:4px;background:var(--line)}
+.exam-board i.ok{background:var(--success)}
+.exam-board i.bad{background:var(--danger)}
+.exam-board i.cur{background:var(--blue-500);animation:examPulse 1s ease-in-out infinite}
+.exam-timer.critical{animation:examPulse .5s ease-in-out infinite}
+#quizView.exam-active{padding-top:118px}
+.pg-exam-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.pg-exam-row{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:700;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.pg-exam-row .ok{color:var(--success)}
+.pg-exam-row .bad{color:var(--danger)}
