@@ -22,7 +22,7 @@ const topicsManifest = () => state.cat === 'CD' ? './topics.json' : './ab/topics
 const topicsDir = () => state.cat === 'CD' ? './topics/' : './ab/topics/';
 const maxTicket = () => allQuestions.reduce((m, q) => Math.max(m, q.ticket || 1), 1);
 const ctxKey = (m = state.mode, t = state.ticket, tp = state.topic) => m === 'ticket' ? 'ticket:' + t : m === 'topic' ? 'topic:' + tp : m;
-const titleOf = () => state.mode === 'exam' ? 'Экзамен' : state.mode === 'ticket' ? 'Билет ' + state.ticket : state.mode === 'topic' ? state.topic : state.mode === 'mistakes' ? 'Мои ошибки' : 'Все вопросы';
+const titleOf = () => state.mode === 'exam' ? 'Экзамен' : state.mode === 'ticket' ? 'Билет ' + state.ticket : state.mode === 'topic' ? state.topic : state.mode === 'mistakes' ? 'Мои ошибки' : state.mode === 'review' ? 'Повторение' : 'Все вопросы';
 const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
 function migrateLegacy() {
   if (store.get('migrated5')) return;
@@ -103,6 +103,14 @@ async function loadExplanations() {
     if (tip) explainMap.set(it.id, String(tip));
   }));
 }
+function getLog() { try { return JSON.parse(store.get(k('log')) || '{}'); } catch (e) { return {}; } }
+function dueIds() {
+  const log = getLog(); const now = Date.now(); const DAY = 864e5; const due = [];
+  state.mistakes.forEach(id => due.push(id));
+  Object.keys(log).forEach(id => { const r = log[id]; if (state.mistakes.has(id)) return; if (r.ok && now - r.t > 3 * DAY) due.push(id); else if (!r.ok && now - r.t > DAY) due.push(id); });
+  if (!due.length) allQuestions.forEach(q => { if (!log[q.id] && due.length < 20) due.push(q.id); });
+  return due.slice(0, 20);
+}
 const explanationFor = q => q.explanation || q.answer_tip || explainMap.get(q.id) || '';
 function correctIndex(q) {
   for (let i = 0; i < q.answers.length; i++) {
@@ -155,6 +163,7 @@ async function rebuild() {
   if (state.mode === 'exam') list = state.exam ? state.exam.ids.map(id => allQuestions.find(q => q.id === id)).filter(Boolean) : [];
   else if (state.mode === 'ticket') list = allQuestions.filter(q => q.ticket === state.ticket);
   else if (state.mode === 'mistakes') list = allQuestions.filter(q => state.mistakes.has(q.id));
+  else if (state.mode === 'review') list = dueIds().map(id => allQuestions.find(q => q.id === id)).filter(Boolean);
   else if (state.mode === 'topic') {
     try { const d = await (await fetch(topicsDir() + encodeURIComponent(state.topic) + '.json')).json(); const ids = new Set(d.map(x => x.id)); list = allQuestions.filter(q => ids.has(q.id)); }
     catch (e) { topicError = true; list = []; }
@@ -256,7 +265,7 @@ function render() {
   $('sectionTitle').textContent = titleOf();
   $('sectionCount').textContent = (state.index + 1) + ' / ' + total;
   $('progressFill').style.width = ((state.index + 1) / total * 100) + '%';
-  $('qChip').textContent = isExam ? 'Экзамен' : state.cat + ' · Билет ' + q.ticket;
+  $('qChip').textContent = isExam ? 'Экзамен' : state.cat + ' · ' + (state.mode === 'review' ? 'Повторение' : 'Билет ' + q.ticket);
   if (isExam && state.exam) {
     tick();
     $('examDots').innerHTML = Array.from({ length: EXAM_MAX_WRONG + 1 }, (_, i) => '<i class="' + (i < state.exam.wrong.length ? 'hit' : '') + '"></i>').join('');
@@ -296,7 +305,7 @@ function answer(i, ok, q) {
   });
   if (ok) { state.session.ok++; state.mistakes.delete(q.id); state.mastered.add(q.id); sfx.ok(); }
   else { state.session.bad++; state.mistakes.add(q.id); sfx.bad(); }
-  if (state.mode !== 'exam') state.ledger[q.id] = { c: i, ok: ok };
+  if (state.mode !== 'exam') { state.ledger[q.id] = { c: i, ok: ok, t: Date.now() }; const lg = getLog(); lg[q.id] = { ok: ok, t: Date.now() }; store.set(k('log'), JSON.stringify(lg)); }
   recordDaily(ok); save();
   if (state.mode === 'exam' && state.exam) {
     if (!ok) state.exam.wrong.push(q.id);
@@ -351,6 +360,7 @@ function renderProgress() {
   $('pgTotal').textContent = total;
   $('pgMastered').textContent = state.mastered.size + ' / ' + (allQuestions.length || 0);
   $('pgMistakes').textContent = state.mistakes.size;
+  $('pgDue').textContent = dueIds().length;
   const hist = getHistory();
   $('pgExams').textContent = hist.filter(x => x.pass).length + ' / ' + hist.length;
   const pl = $('pgExamList'); pl.innerHTML = '';
@@ -405,6 +415,7 @@ function refreshMenu() {
   $('badgeTopic').textContent = b('p:topic:' + state.topic);
   $('badgeMistakes').textContent = state.mistakes.size ? state.mistakes.size + ' шт.' : '';
   $('badgeProgress').textContent = ((getDaily()[todayKey()] || {}).a || 0) + ' сегодня';
+  $('badgeReview').textContent = dueIds().length ? dueIds().length + ' к повтору' : '';
   $('badgeCat').textContent = state.cat;
   const hist = getHistory();
   $('badgeExam').textContent = state.exam ? 'идёт' : hist.length ? (hist[hist.length - 1].pass ? '✓ сдан' : '✗ не сдан') : '';
