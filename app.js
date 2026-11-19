@@ -195,7 +195,7 @@ function startExamTimer() { clearInterval(examTimer); examTimer = setInterval(ti
 function tick() {
   if (!state.exam) return;
   const left = state.exam.deadline - Date.now();
-  if (left <= 0) { if (document.body.dataset.view === 'quiz') { finishExam(false, 'Время вышло'); } else { state.exam.deadline = Date.now() - 1; saveExam(); } return; }
+  if (left <= 0) { if (document.body.dataset.view === 'quiz') { finishExam(false, 'Время вышло'); } else if (!state.exam.expiredNoted) { state.exam.expiredNoted = true; state.exam.deadline = Date.now() - 1; saveExam(); } return; }
   const el = $('examTime');
   if (el) { el.textContent = fmt(left); el.classList.toggle('low', left < 60000); el.classList.toggle('critical', left < 10000); }
   const sec = Math.ceil(left / 1000);
