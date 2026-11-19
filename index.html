@@ -30,7 +30,7 @@
       <rect x="30.4" y="29" width="3.2" height="7" rx="1.6" fill="#6D28D9"/>
       <rect x="30.4" y="41" width="3.2" height="7" rx="1.6" fill="#6D28D9"/>
     </svg>
-    <span class="logo-text"><span class="logo-word">Ivetta<span class="logo-chip">PDD</span></span><span class="logo-sub" id="logoSub"></span></span>
+    <span class="logo-word">Ivetta<span class="logo-chip">PDD</span></span>
   </button>
   <div class="appbar-mid" id="appbarMid">
     <div class="appbar-titles"><span id="sectionTitle">Все вопросы</span><span id="sectionCount">1 / 800</span></div>
@@ -68,12 +68,16 @@
       <div class="home-scrim"></div>
     </div>
     <div class="home-content">
+      <h1 class="home-title">Ivetta <span class="home-title-chip">PDD</span></h1>
       <p class="home-sub">800 вопросов · 40 билетов · 26 тем.<br>Сдай на права спокойно и с удовольствием.</p>
-      <div class="home-row"><div class="home-row"><div class="home-stats">
-        <div><b id="homeStreak">0</b><small>дней подряд</small></div>
-        <div><b id="homeToday">0</b><small>сегодня ответов</small></div>
+      <div class="home-row">
+        <div class="home-stats">
+          <div><b id="homeStreak">0</b><small>дней подряд</small></div>
+          <div><b id="homeToday">0</b><small>сегодня ответов</small></div>
+        </div>
+        <span class="home-chip" id="homeChip">Пробный период</span>
       </div>
-      </div><span class="home-chip" id="homeChip">Пробный период</span></div><div class="home-actions">
+      <div class="home-actions">
         <button class="nav-btn primary big" id="homeContinueBtn">Продолжить обучение →</button>
         <button class="nav-btn ghost big light" id="homeMenuBtn">Меню</button>
       </div>
@@ -181,7 +185,7 @@
     <label class="switch wide"><input type="checkbox" id="autoAdvance" checked><span class="track"><span class="knob"></span></span><span class="switch-label">Автопереход после ответа</span></label>
     <button class="danger-ghost" id="resetSectionBtn">Сбросить прогресс этого раздела</button>
   </div>
-  <div class="sheet-foot">Ivetta PDD · v4.0 · архитектура Платон</div>
+  <div class="sheet-foot">Ivetta PDD · v4.2 · архитектура Платон</div>
 </div>
 <div class="sheet" id="ticketSheet" hidden role="dialog"><div class="sheet-head"><h2>Выбери билет</h2><button class="icon-btn close" data-close>✕</button></div><div class="ticket-grid" id="ticketGrid"></div></div>
 <div class="sheet" id="topicSheet" hidden role="dialog"><div class="sheet-head"><h2>Выбери тему</h2><button class="icon-btn close" data-close>✕</button></div><div class="topic-list" id="topicList"></div></div>
