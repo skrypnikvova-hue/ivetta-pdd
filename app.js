@@ -85,6 +85,7 @@ function load() {
     const ex = JSON.parse(store.get(examKey()) || 'null');
     if (ex && Array.isArray(ex.ids) && ex.ids.length && ex.deadline > Date.now()) { state.exam = ex; state.mode = 'exam'; state.index = ex.i || 0; }
   } catch (e) {}
+  if (!state.exam && state.mode === 'exam') { state.mode = 'all'; state.index = parseInt(store.get(k('p:all')) || '0', 10) || 0; }
 }
 let actx = null;
 function ac() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (actx && actx.state === 'suspended') actx.resume(); return actx; }
@@ -209,9 +210,10 @@ function finishExam(pass, reason) {
   store.set(historyKey(), JSON.stringify(hist));
   const wrongIds = ex.wrong.slice();
   state.exam = null; saveExam(); answeredIndex = -1;
+  state.mode = 'all'; state.index = parseInt(store.get(k('p:all')) || '0', 10) || 0; save();
   $('exBadge').textContent = pass ? '🏆' : '💥';
   $('exTitle').textContent = pass ? 'Экзамен сдан!' : 'Экзамен не сдан';
-  $('exStats').textContent = (reason ? reason + ' · ' : '') + 'верно ' + (ex.ids.length - wrongIds.length) + ' из ' + ex.ids.length + ' · ошибок ' + wrongIds.length + ' · время ' + fmt((EXAM_MIN * 60000 - (ex.deadline - Date.now())));
+  $('exStats').textContent = state.cat + ' · ' + (reason ? reason + ' · ' : '') + 'верно ' + (ex.ids.length - wrongIds.length) + ' из ' + ex.ids.length + ' · ошибок ' + wrongIds.length + ' · время ' + fmt((EXAM_MIN * 60000 - (ex.deadline - Date.now())));
   const rv = $('exReview'); rv.innerHTML = '';
   if (!wrongIds.length) { const p = document.createElement('p'); p.textContent = 'Без ошибок — чисто!'; rv.appendChild(p); }
   wrongIds.forEach(id => {
@@ -223,7 +225,7 @@ function finishExam(pass, reason) {
     if (tip) { const t = document.createElement('div'); t.className = 'tip'; t.textContent = tip; item.appendChild(t); }
     rv.appendChild(item);
   });
-  show('examResult'); refreshMenu();
+  show('examResult'); refreshMenu(); refreshHome();
   if (pass) { sfx.win(); confetti(); } else sfx.bad();
 }
 function show(v) {
