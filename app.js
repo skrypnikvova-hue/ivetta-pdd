@@ -540,3 +540,29 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!storageOK) toast('Приватный режим: прогресс сохранится только до закрытия вкладки');
   if ('serviceWorker' in navigator) { const had = !!navigator.serviceWorker.controller; navigator.serviceWorker.register('./service-worker.js').catch(() => {}); navigator.serviceWorker.addEventListener('controllerchange', () => { if (had) location.reload(); }); }
 });
+/* ivetta: backend resume + backend form mode */
+if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayments.modeNow() === 'backend') {
+  window.IvettaPayments.validateCard = () => ({ ok: true, errors: {} });
+  ['cardNumber', 'cardExp', 'cardCvc', 'errNumber', 'errExp', 'errCvc'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.display = 'none';
+      const lb = el.previousElementSibling;
+      if (lb && lb.tagName === 'LABEL') lb.style.display = 'none';
+    }
+  });
+  const pb = document.getElementById('payBtn');
+  if (pb) pb.textContent = 'Оплатить 399 ₽ на странице банка';
+}
+(async () => {
+  const P = window.IvettaPayments;
+  if (!P || !P.resumePay) return;
+  const lic = await P.resumePay();
+  if (!lic) return;
+  history.replaceState(null, '', location.pathname);
+  const ent = getEnt() || { trialStart: Date.now() };
+  ent.license = lic;
+  store.set('ent', JSON.stringify(ent));
+  sfx.win(); confetti(); toast('Оплата подтверждена банком — доступ активирован пожизненно 🎉');
+  syncControls(); renderInfo(); refreshMenu();
+})();
