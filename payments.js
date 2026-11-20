@@ -25,8 +25,36 @@ window.IvettaPayments = (function () {
     if (digits(c.cvc).length < 3) errors.cvc = '3 цифры';
     return { ok: !Object.keys(errors).length, errors };
   }
+  function modeNow() { return localStorage.getItem('ivetta_pay_mode') || MODE; }
+  function base() { return (localStorage.getItem('ivetta_pay_base') || '').replace(/\/$/, ''); }
+  async function bpost(path, obj) {
+    const r = await fetch(base() + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj) });
+    if (!r.ok) { const e = new Error('server_' + r.status); e.code = 'server'; throw e; }
+    return r.json();
+  }
+  async function backendPay(card) {
+    const idem = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+    const created = await bpost('/api/pay/create', { amount: PRICE, idempotenceKey: idem, description: 'Ivetta PDD — пожизненный доступ' });
+    if (created.redirect_url) { sessionStorage.setItem('ivetta_pay_id', created.id); location.assign(created.redirect_url); return new Promise(() => {}); }
+    const conf = await bpost('/api/pay/confirm', { paymentId: created.id, card: { number: card.number, exp: card.exp, cvc: card.cvc } });
+    if (conf.status !== 'succeeded') { const e = new Error(conf.status); e.code = conf.status; throw e; }
+    const l = conf.license;
+    return { id: created.id, key: l.key, issuedAt: l.issuedAt, amount: l.amount, currency: CURRENCY, last4: l.last4, provider: 'backend' };
+  }
+  async function resumePay() {
+    const id = new URLSearchParams(location.search).get('pay_id') || sessionStorage.getItem('ivetta_pay_id');
+    if (!id || !base()) return null;
+    sessionStorage.removeItem('ivetta_pay_id');
+    try {
+      const r = await fetch(base() + '/api/pay/' + id);
+      if (!r.ok) return null;
+      const s = await r.json();
+      if (s.status === 'succeeded' && s.license) { const l = s.license; return { id: id, key: l.key, issuedAt: l.issuedAt, amount: l.amount, currency: CURRENCY, last4: l.last4, provider: 'backend' }; }
+    } catch (e) {}
+    return null;
+  }
   async function pay(card) {
-    if (MODE === 'yookassa') return createPayment(card);
+    if (modeNow() === 'backend' || modeNow() === 'yookassa') return backendPay(card);
     await delay(1500);
     const n = digits(card.number);
     if (n === '4000000000000002') { const e = new Error('declined'); e.code = 'declined'; throw e; }
@@ -34,6 +62,6 @@ window.IvettaPayments = (function () {
     const rnd = () => Math.random().toString(36).slice(2, 6).toUpperCase();
     return { id: 'pay_' + Date.now().toString(36), key: 'IVETTA-' + rnd() + '-' + rnd(), issuedAt: Date.now(), amount: PRICE, currency: CURRENCY, last4: n.slice(-4), provider: 'mock' };
   }
-  async function createPayment() { const e = new Error('backend_required'); e.code = 'backend_required'; throw e; }
-  return { MODE, PRICE, CURRENCY, TRIAL_DAYS, luhn, validateCard, pay, digits };
+
+  return { MODE, PRICE, CURRENCY, TRIAL_DAYS, luhn, validateCard, pay, digits, resumePay, base, modeNow };
 })();
