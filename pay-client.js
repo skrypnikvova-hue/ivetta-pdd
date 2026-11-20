@@ -24,10 +24,20 @@ window.IvettaPay = (function () {
     if (!base()) return mockPay(card);
     const idem = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
     const created = await post('/api/pay/create', { amount: 399, idempotenceKey: idem, description: 'Ivetta PDD — пожизненный доступ' });
+    if (created.redirect_url) return { ok: false, redirect: true, url: created.redirect_url, id: created.id, mode: 'backend' };
     const conf = await post('/api/pay/confirm', { paymentId: created.id, card: card });
     if (conf.status !== 'succeeded') return { ok: false, mode: 'backend', error: conf.status };
     return { ok: true, mode: 'backend', license: conf.license };
   }
   function status(id) { return get('/api/pay/' + id); }
-  return { pay: pay, status: status, mode: mode, base: base };
+  async function resume() {
+    const u = new URLSearchParams(location.search);
+    const id = u.get('id') || u.get('orderId');
+    if (!id || !base()) return null;
+    try {
+      const s = await status(id);
+      return { ok: s.status === 'succeeded', status: s.status, license: s.license, id: id };
+    } catch (e) { return { ok: false, status: 'network', id: id }; }
+  }
+  return { pay: pay, status: status, resume: resume, mode: mode, base: base };
 })();
