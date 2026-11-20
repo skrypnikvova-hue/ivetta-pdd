@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LunoXod — лунный календарь</title>
-<meta name="description" content="Лунный календарь LunoXod: фазы Луны, лунные дни, рекомендации, месячный календарь и ближайшие новолуния/полнолуния. Офлайн, без сбора данных.">
+<meta name="description" content="Лунный календарь LunoXod: фазы Луны, лунные дни и их границы, Луна в знаке, рекомендации, месячный календарь, ближайшие новолуния и полнолуния. Офлайн, без сбора данных.">
 <meta name="theme-color" content="#0A0F24">
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <style>
-:root{--navy:#0A0F24;--deep:#121A38;--card:#161F42;--gold:#F5C542;--amber:#E8A23D;--silver:#C9D1E3;--white:#F4F6FB;--line:rgba(201,209,227,.16);--r:24px;--ok:#7EE2A8;--bad:#FF8A8A}
+:root{--navy:#0A0F24;--deep:#121A38;--card:#161F42;--gold:#F5C542;--amber:#E8A23D;--blue:#4C8DFF;--violet:#8B5CF6;--green:#7EE2A8;--red:#FF8A8A;--silver:#C9D1E3;--white:#F4F6FB;--line:rgba(201,209,227,.16);--r:24px;--par:0px}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scrollbar-color:var(--gold) var(--navy);scrollbar-width:thin}
 ::-webkit-scrollbar{width:10px;height:10px}
@@ -19,14 +19,16 @@ html{scrollbar-color:var(--gold) var(--navy);scrollbar-width:thin}
 html,body{height:100%}
 body{background:var(--navy);color:var(--white);font:16px/1.5 "Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;
 background-image:radial-gradient(1px 1px at 12% 18%,rgba(244,246,251,.7) 50%,transparent 51%),radial-gradient(1px 1px at 32% 64%,rgba(244,246,251,.5) 50%,transparent 51%),radial-gradient(1.5px 1.5px at 58% 28%,rgba(244,246,251,.65) 50%,transparent 51%),radial-gradient(1px 1px at 76% 72%,rgba(244,246,251,.45) 50%,transparent 51%),radial-gradient(1.5px 1.5px at 88% 12%,rgba(244,246,251,.6) 50%,transparent 51%),radial-gradient(1px 1px at 44% 88%,rgba(244,246,251,.4) 50%,transparent 51%)}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(1.5px 1.5px at 22% 42%,rgba(245,197,66,.5) 50%,transparent 51%),radial-gradient(1px 1px at 66% 16%,rgba(244,246,251,.6) 50%,transparent 51%),radial-gradient(1px 1px at 84% 58%,rgba(244,246,251,.5) 50%,transparent 51%);animation:twinkle 7s ease-in-out infinite alternate}
+body::before{content:"";position:fixed;inset:-10% 0;pointer-events:none;z-index:0;background:radial-gradient(1.5px 1.5px at 22% 42%,rgba(245,197,66,.5) 50%,transparent 51%),radial-gradient(1px 1px at 66% 16%,rgba(244,246,251,.6) 50%,transparent 51%),radial-gradient(1px 1px at 84% 58%,rgba(244,246,251,.5) 50%,transparent 51%);animation:twinkle 7s ease-in-out infinite alternate;transform:translateY(calc(var(--par) * -0.05))}
+body::after{content:"";position:fixed;inset:-20% 0;pointer-events:none;z-index:0;background:radial-gradient(1px 1px at 8% 70%,rgba(76,141,255,.45) 50%,transparent 51%),radial-gradient(1.5px 1.5px at 48% 30%,rgba(139,92,246,.4) 50%,transparent 51%),radial-gradient(1px 1px at 92% 82%,rgba(244,246,251,.4) 50%,transparent 51%);transform:translateY(calc(var(--par) * -0.12))}
 @keyframes twinkle{from{opacity:.25}to{opacity:.9}}
-.wrap{max-width:560px;margin:0 auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom));position:relative}
-header{display:flex;align-items:center;gap:8px;padding:8px 0 14px;animation:rise .5s ease both}
+header{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:rgba(10,15,36,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+header .inner{max-width:560px;margin:0 auto;width:100%;display:flex;align-items:center;gap:8px}
 header .logo{font-size:22px;font-weight:800;color:var(--gold);letter-spacing:.5px}
 header .sp{flex:1}
 .icon-btn{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--deep);color:var(--silver);font-size:18px;cursor:pointer;transition:transform .15s,border-color .15s,color .15s}
 .icon-btn:hover{transform:translateY(-1px);border-color:var(--gold);color:var(--gold)}
+.wrap{max-width:560px;margin:0 auto;padding:calc(84px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));position:relative;z-index:1}
 .date{text-align:center;color:var(--silver);font-size:15px;margin-bottom:12px;animation:rise .5s .05s ease both}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px;box-shadow:0 12px 32px rgba(0,0,0,.35);animation:rise .55s .1s ease both}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -37,21 +39,26 @@ header .sp{flex:1}
 .chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .chip{padding:6px 12px;border-radius:999px;background:var(--deep);border:1px solid var(--line);color:var(--silver);font-size:12.5px;font-weight:700}
 .chip.gold{color:var(--gold);border-color:rgba(245,197,66,.4)}
+.chip.blue{color:var(--blue);border-color:rgba(76,141,255,.4)}
+.chip.violet{color:var(--violet);border-color:rgba(139,92,246,.4)}
 .chip.off{color:var(--amber);border-color:rgba(232,162,61,.45)}
 .nav{display:flex;justify-content:space-between;align-items:center;margin-top:14px;width:100%}
 .nav button{background:none;border:none;color:var(--silver);font-size:14px;font-weight:700;cursor:pointer;padding:8px;transition:color .15s}
 .nav button.today{color:var(--gold)}
 .nav button:hover{color:var(--gold)}
 h2{font-size:16px;color:var(--gold);margin:22px 0 10px;font-weight:800}
-.rec{animation:rise .55s .18s ease both}
+.rec,.cal,.cal-head{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease,box-shadow .6s ease}
+.rec.in,.cal.in,.cal-head.in{opacity:1;transform:none}
+.rec.in{box-shadow:0 12px 32px rgba(0,0,0,.35),0 0 0 1px rgba(126,226,168,.18),0 0 24px rgba(126,226,168,.10)}
+.cal.in button{border-color:rgba(76,141,255,.28)}
 .rec .t{font-weight:800;font-size:17px;margin-bottom:8px}
 .rec ul{list-style:none;margin:6px 0}
 .rec li{padding:6px 0 6px 24px;position:relative;color:var(--silver);font-size:14.5px}
-.rec li.do::before{content:"✓";position:absolute;left:4px;color:var(--ok)}
-.rec li.avoid::before{content:"✕";position:absolute;left:4px;color:var(--bad)}
-.cal-head{display:flex;justify-content:space-between;align-items:center;margin:22px 0 10px}
+.rec li.do::before{content:"✓";position:absolute;left:4px;color:var(--green)}
+.rec li.avoid::before{content:"✕";position:absolute;left:4px;color:var(--red)}
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin:22px 0 10px;scroll-margin-top:96px}
 .cal-head .m{font-weight:800;color:var(--gold);font-size:16px}
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;animation:rise .55s .24s ease both}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .cal .wd{text-align:center;color:var(--silver);font-size:11px;font-weight:700;padding:4px 0;opacity:.7}
 .cal button{background:var(--deep);border:1px solid var(--line);border-radius:14px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--white);transition:border-color .15s,transform .15s}
 .cal button:hover{border-color:var(--gold);transform:translateY(-1px)}
@@ -68,17 +75,18 @@ dialog::backdrop{background:rgba(4,8,20,.7);backdrop-filter:blur(6px)}
 dialog h3{color:var(--gold);margin-bottom:10px}
 dialog p{color:var(--silver);font-size:14px;margin:8px 0}
 dialog .close{margin-top:14px;width:100%;padding:12px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--gold),var(--amber));color:#1D1B26;font-weight:800;font-size:15px;cursor:pointer}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rec,.cal,.cal-head{opacity:1;transform:none}}
 </style>
 </head>
 <body>
+<header><div class="inner"><span class="logo">🌙 LunoXod</span><span class="sp"></span><button class="icon-btn" id="exportBtn" aria-label="Скачать Луну в PNG">⬇️</button><button class="icon-btn" id="shareBtn" aria-label="Поделиться днём">🔗</button><button class="icon-btn" id="installBtn" aria-label="Установить приложение" hidden>📲</button><button class="icon-btn" id="calBtn" aria-label="К календарю">📅</button><button class="icon-btn" id="aboutBtn" aria-label="О приложении">ℹ️</button></div></header>
 <div class="wrap">
-<header><span class="logo">🌙 LunoXod</span><span class="sp"></span><button class="icon-btn" id="shareBtn" aria-label="Поделиться днём">🔗</button><button class="icon-btn" id="installBtn" aria-label="Установить приложение" hidden>📲</button><button class="icon-btn" id="calBtn" aria-label="К календарю">📅</button><button class="icon-btn" id="aboutBtn" aria-label="О приложении">ℹ️</button></header>
 <div class="date" id="dateLabel"></div>
 <div class="card moon-box">
 <canvas id="moon" width="440" height="440" role="img"></canvas>
 <div class="phase" id="phaseLabel"></div>
-<div class="chips"><span class="chip gold" id="dayChip"></span><span class="chip" id="illumChip"></span><span class="chip" id="waxChip"></span></div>
+<div class="chips"><span class="chip gold" id="dayChip"></span><span class="chip" id="illumChip"></span><span class="chip" id="waxChip"></span><span class="chip violet" id="zodiacChip"></span></div>
+<div class="chips" style="margin-top:8px"><span class="chip blue" id="daySpanChip"></span></div>
 <div class="chips" style="margin-top:8px"><span class="chip" id="nextNew"></span><span class="chip" id="nextFull"></span><span class="chip off" id="offChip" hidden>офлайн-режим</span></div>
 <div class="nav"><button id="prev">← Вчера</button><button id="today" class="today">• Сегодня •</button><button id="next">Завтра →</button></div>
 </div>
@@ -86,11 +94,11 @@ dialog .close{margin-top:14px;width:100%;padding:12px;border-radius:14px;border:
 <div class="card rec" id="rec"></div>
 <div class="cal-head" id="calHead"><button class="icon-btn" id="mPrev" aria-label="Предыдущий месяц">‹</button><span class="m" id="mLabel"></span><button class="icon-btn" id="mNext" aria-label="Следующий месяц">›</button></div>
 <div class="cal" id="cal"></div>
-<footer>LunoXod · расчёты локально на устройстве · данные не собираются</footer>
+<footer>LunoXod · расчёты локально на устройстве · данные не собираются · ←/→ дни, T — сегодня</footer>
 </div>
 <div class="toast" id="toast"></div>
 <dialog id="about"><h3>О приложении LunoXod</h3>
-<p>Лунный календарь: фазы Луны, лунные дни и рекомендации. Все расчёты выполняются локально на вашем устройстве по астрономическим формулам (Meeus).</p>
+<p>Лунный календарь: фазы Луны, лунные дни и их границы, положение Луны в знаках зодиака, рекомендации и месячный календарь. Все расчёты выполняются локально на вашем устройстве по астрономическим формулам (Meeus).</p>
 <p>Приложение не собирает, не хранит и не передаёт персональные данные. Интернет не требуется для основной функциональности. Сторонние аналитики и рекламные сети не используются.</p>
 <p>Настройки хранятся локально и удаляются вместе с приложением. Контакты: skrypnik.vova@gmail.com</p>
 <button class="close" id="aboutClose">Понятно</button></dialog>
@@ -99,6 +107,7 @@ dialog .close{margin-top:14px;width:100%;padding:12px;border-radius:14px;border:
 const SYN = 29.530588861, D2R = Math.PI / 180;
 const $ = id => document.getElementById(id);
 function jd(d) { return d.getTime() / 86400000 + 2440587.5; }
+function jdToDate(j) { return new Date((j - 2440587.5) * 86400000); }
 function phaseJD(k, full) {
   const T = k / 1236.85;
   let JDE = 2451550.09766 + 29.530588861 * k + 0.00015437 * T * T - 0.000000150 * T ** 3 + 0.00000000073 * T ** 4;
@@ -113,6 +122,17 @@ function phaseJD(k, full) {
   const A = 0.000325 * Math.sin((299.77 + 0.107408 * k - 0.009173 * T * T) * D2R) + 0.000165 * Math.sin((251.88 + 0.016321 * k) * D2R) + 0.000164 * Math.sin((251.83 + 26.651886 * k) * D2R) + 0.000126 * Math.sin((349.42 + 36.412478 * k) * D2R) + 0.000110 * Math.sin((84.66 + 18.206239 * k) * D2R);
   return JDE + c + A;
 }
+function moonLon(j) {
+  const T = (j - 2451545.0) / 36525;
+  const Lp = 218.3164477 + 481267.88123421 * T - 0.0015786 * T * T + T ** 3 / 538841 - T ** 4 / 65194000;
+  const D = (297.8501921 + 445267.1114034 * T - 0.0018819 * T * T + T ** 3 / 545868 - T ** 4 / 113065000) * D2R;
+  const M = (357.5291092 + 35999.0502909 * T - 0.0001536 * T * T + T ** 3 / 24490000) * D2R;
+  const Mp = (134.9633964 + 477198.8675055 * T + 0.0087414 * T * T + T ** 3 / 69699 - T ** 4 / 14712000) * D2R;
+  const F = (93.2720950 + 483202.0175233 * T - 0.0036539 * T * T - T ** 3 / 3526000 + T ** 4 / 863310000) * D2R;
+  let lon = Lp + 6.288774 * Math.sin(Mp) + 1.274027 * Math.sin(2 * D - Mp) + 0.658314 * Math.sin(2 * D) + 0.213618 * Math.sin(2 * Mp) - 0.185116 * Math.sin(M) - 0.114332 * Math.sin(2 * F) + 0.058793 * Math.sin(2 * D - 2 * Mp) + 0.057066 * Math.sin(2 * D - M - Mp) + 0.053322 * Math.sin(2 * D + Mp) + 0.045758 * Math.sin(2 * D - M) - 0.040923 * Math.sin(M - Mp) - 0.034720 * Math.sin(D) - 0.030383 * Math.sin(M + Mp) + 0.015327 * Math.sin(2 * D - 2 * F) - 0.012528 * Math.sin(Mp + 2 * F) + 0.010980 * Math.sin(Mp - 2 * F) + 0.010675 * Math.sin(4 * D - Mp) + 0.010034 * Math.sin(3 * Mp) + 0.008548 * Math.sin(4 * D - 2 * Mp) - 0.007888 * Math.sin(2 * D + M - Mp) - 0.006766 * Math.sin(2 * D + M) - 0.005163 * Math.sin(D - Mp) + 0.004987 * Math.sin(D + M) + 0.004036 * Math.sin(2 * D - M + Mp);
+  return ((lon % 360) + 360) % 360;
+}
+const ZODIAC = [['♈','Овне'],['♉','Тельце'],['♊','Близнецах'],['♋','Раке'],['♌','Льве'],['♍','Деве'],['♎','Весах'],['♏','Скорпионе'],['♐','Стрельце'],['♑','Козероге'],['♒','Водолее'],['♓','Рыбах']];
 function lunar(date) {
   const noon = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
   const j = jd(noon);
@@ -132,7 +152,8 @@ function lunar(date) {
   else if (age < 21.15) phase = ['🌖', 'Убывающая Луна'];
   else if (age < 23.15) phase = ['🌗', 'Последняя четверть'];
   else phase = ['🌘', 'Убывающий серп'];
-  return { age, illum, waxing, day, phase, j, k };
+  const lon = moonLon(j);
+  return { age, illum, waxing, day, phase, j, k, nm, lon, sign: Math.floor(lon / 30) };
 }
 function nextEvents(L) {
   let nn = null, nf = null;
@@ -193,8 +214,17 @@ const REC = [
 const FMT = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 const MFMT = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' });
 const SFMT = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short' });
+const TFMT = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' });
 function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function sameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+function relLabel(d, ref) {
+  if (sameDay(d, ref)) return 'сегодня ' + TFMT.format(d);
+  const tom = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() + 1);
+  if (sameDay(d, tom)) return 'завтра ' + TFMT.format(d);
+  const yest = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() - 1);
+  if (sameDay(d, yest)) return 'вчера ' + TFMT.format(d);
+  return SFMT.format(d) + ' ' + TFMT.format(d);
+}
 let sel = new Date();
 const qd = new URLSearchParams(location.search).get('d');
 if (qd && /^\d{4}-\d{2}-\d{2}$/.test(qd)) { const p = qd.split('-'); const d = new Date(+p[0], +p[1] - 1, +p[2]); if (!isNaN(d)) sel = d; }
@@ -206,14 +236,17 @@ function render() {
   history.replaceState(null, '', '?d=' + iso(sel));
   $('dateLabel').textContent = FMT.format(sel);
   drawMoon($('moon'), L, 150);
-  $('moon').setAttribute('aria-label', L.phase[1] + ', освещённость ' + Math.round(L.illum * 100) + '%, ' + L.day + '-й лунный день');
+  $('moon').setAttribute('aria-label', L.phase[1] + ', освещённость ' + Math.round(L.illum * 100) + '%, ' + L.day + '-й лунный день, Луна в ' + ZODIAC[L.sign][1]);
   $('phaseLabel').textContent = L.phase[0] + ' ' + L.phase[1];
   $('dayChip').textContent = L.day + '-й лунный день';
   $('illumChip').textContent = 'освещённость ' + Math.round(L.illum * 100) + '%';
-  $('waxChip').textContent = L.waxing ? 'растущая' : 'убывающая';
+  const wc = $('waxChip'); wc.textContent = L.waxing ? 'растущая' : 'убывающая'; wc.className = 'chip ' + (L.waxing ? 'blue' : 'violet');
+  $('zodiacChip').textContent = ZODIAC[L.sign][0] + ' Луна в ' + ZODIAC[L.sign][1];
+  const s = jdToDate(L.nm + (L.day - 1) * SYN / 30), e = jdToDate(L.nm + L.day * SYN / 30);
+  $('daySpanChip').textContent = '🕐 ' + L.day + '-й день: ' + relLabel(s, sel) + ' → ' + relLabel(e, sel);
   const ev = nextEvents(L);
-  $('nextNew').textContent = '🌑 новолуние: ' + (ev.nn ? SFMT.format(new Date((ev.nn - 2440587.5) * 86400000)) : '—');
-  $('nextFull').textContent = '🌕 полнолуние: ' + (ev.nf ? SFMT.format(new Date((ev.nf - 2440587.5) * 86400000)) : '—');
+  $('nextNew').textContent = '🌑 новолуние: ' + (ev.nn ? SFMT.format(jdToDate(ev.nn)) : '—');
+  $('nextFull').textContent = '🌕 полнолуние: ' + (ev.nf ? SFMT.format(jdToDate(ev.nf)) : '—');
   $('today').style.visibility = sameDay(sel, new Date()) ? 'hidden' : 'visible';
   const r = REC[Math.min(L.day, 30) - 1];
   $('rec').innerHTML = '<div class="t">' + r.t + '</div><ul>' + r.d.map(x => '<li class="do">' + x + '</li>').join('') + '</ul><ul>' + r.a.map(x => '<li class="avoid">' + x + '</li>').join('') + '</ul>';
@@ -243,8 +276,9 @@ function renderCal() {
     cal.appendChild(b);
   }
 }
-$('prev').addEventListener('click', () => { sel = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate() - 1); view = new Date(sel.getFullYear(), sel.getMonth(), 1); render(); });
-$('next').addEventListener('click', () => { sel = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate() + 1); view = new Date(sel.getFullYear(), sel.getMonth(), 1); render(); });
+function shift(n) { sel = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate() + n); view = new Date(sel.getFullYear(), sel.getMonth(), 1); render(); }
+$('prev').addEventListener('click', () => shift(-1));
+$('next').addEventListener('click', () => shift(1));
 $('today').addEventListener('click', () => { sel = new Date(); view = new Date(sel.getFullYear(), sel.getMonth(), 1); render(); });
 $('mPrev').addEventListener('click', () => { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); renderCal(); });
 $('mNext').addEventListener('click', () => { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); renderCal(); });
@@ -256,6 +290,19 @@ $('shareBtn').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(url); toast('Ссылка на день скопирована'); }
   catch (e) { prompt('Ссылка на день:', url); }
 });
+$('exportBtn').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = $('moon').toDataURL('image/png');
+  a.download = 'lunoxod-' + iso(sel) + '.png';
+  a.click();
+  toast('Луна сохранена в PNG');
+});
+document.addEventListener('keydown', e => {
+  if ($('about').open || e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowLeft') shift(-1);
+  else if (e.key === 'ArrowRight') shift(1);
+  else if (e.key === 't' || e.key === 'T' || e.key === 'е' || e.key === 'Е') { sel = new Date(); view = new Date(sel.getFullYear(), sel.getMonth(), 1); render(); }
+});
 let deferredPrompt = null;
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 if (!standalone) {
@@ -265,6 +312,14 @@ if (!standalone) {
 }
 function net() { $('offChip').hidden = navigator.onLine; }
 window.addEventListener('online', net); window.addEventListener('offline', net); net();
+let parTick = false;
+window.addEventListener('scroll', () => {
+  if (parTick) return;
+  parTick = true;
+  requestAnimationFrame(() => { document.body.style.setProperty('--par', window.scrollY + 'px'); parTick = false; });
+}, { passive: true });
+const io = new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting) x.target.classList.add('in'); }), { threshold: 0.12 });
+['rec', 'cal', 'calHead'].forEach(id => io.observe($(id)));
 render();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 </script>
