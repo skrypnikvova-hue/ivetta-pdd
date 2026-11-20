@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LunoXod — лунный календарь</title>
+<meta name="description" content="Лунный календарь LunoXod: фазы Луны, лунные дни, рекомендации и месячный календарь. Офлайн, без сбора данных.">
+<meta name="theme-color" content="#0A0F24">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<style>
+:root{--navy:#0A0F24;--deep:#121A38;--card:#161F42;--gold:#F5C542;--silver:#C9D1E3;--white:#F4F6FB;--line:rgba(201,209,227,.16);--r:24px}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--navy);color:var(--white);font:16px/1.5 "Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+background-image:radial-gradient(1px 1px at 12% 18%,rgba(244,246,251,.7) 50%,transparent 51%),radial-gradient(1px 1px at 32% 64%,rgba(244,246,251,.5) 50%,transparent 51%),radial-gradient(1.5px 1.5px at 58% 28%,rgba(244,246,251,.65) 50%,transparent 51%),radial-gradient(1px 1px at 76% 72%,rgba(244,246,251,.45) 50%,transparent 51%),radial-gradient(1.5px 1.5px at 88% 12%,rgba(244,246,251,.6) 50%,transparent 51%),radial-gradient(1px 1px at 44% 88%,rgba(244,246,251,.4) 50%,transparent 51%)}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;gap:10px;padding:8px 0 14px}
+header .logo{font-size:22px;font-weight:800;color:var(--gold);letter-spacing:.5px}
+header .sp{flex:1}
+.icon-btn{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--deep);color:var(--silver);font-size:18px;cursor:pointer;transition:transform .15s,border-color .15s}
+.icon-btn:hover{transform:translateY(-1px);border-color:var(--gold)}
+.date{text-align:center;color:var(--silver);font-size:15px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px;box-shadow:0 12px 32px rgba(0,0,0,.35)}
+.moon-box{display:flex;flex-direction:column;align-items:center;gap:10px}
+#moon{width:220px;height:220px}
+.phase{font-size:22px;font-weight:800;color:var(--gold);text-align:center}
+.chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.chip{padding:6px 12px;border-radius:999px;background:var(--deep);border:1px solid var(--line);color:var(--silver);font-size:12.5px;font-weight:700}
+.chip.gold{color:var(--gold);border-color:rgba(245,197,66,.4)}
+.nav{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+.nav button{background:none;border:none;color:var(--silver);font-size:14px;font-weight:700;cursor:pointer;padding:8px}
+.nav button.today{color:var(--gold)}
+.nav button:hover{color:var(--gold)}
+h2{font-size:16px;color:var(--gold);margin:22px 0 10px;font-weight:800}
+.rec .t{font-weight:800;font-size:17px;margin-bottom:8px}
+.rec ul{list-style:none;margin:6px 0}
+.rec li{padding:6px 0 6px 24px;position:relative;color:var(--silver);font-size:14.5px}
+.rec li.do::before{content:"✓";position:absolute;left:4px;color:#7EE2A8}
+.rec li.avoid::before{content:"✕";position:absolute;left:4px;color:#FF8A8A}
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin:22px 0 10px}
+.cal-head .m{font-weight:800;color:var(--gold);font-size:16px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal .wd{text-align:center;color:var(--silver);font-size:11px;font-weight:700;padding:4px 0;opacity:.7}
+.cal button{background:var(--deep);border:1px solid var(--line);border-radius:14px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--white);transition:border-color .15s,transform .15s}
+.cal button:hover{border-color:var(--gold);transform:translateY(-1px)}
+.cal button .d{font-size:12px;font-weight:700}
+.cal button .l{font-size:9.5px;color:var(--silver);opacity:.8}
+.cal button.today{border-color:var(--gold)}
+.cal button.sel{background:linear-gradient(135deg,rgba(245,197,66,.22),rgba(245,197,66,.08));border-color:var(--gold)}
+.cal button.empty{background:none;border:none;cursor:default}
+footer{margin-top:22px;text-align:center;color:var(--silver);font-size:12px;opacity:.7}
+dialog{background:var(--card);color:var(--white);border:1px solid var(--line);border-radius:var(--r);max-width:520px;width:calc(100% - 32px);padding:22px}
+dialog::backdrop{background:rgba(4,8,20,.7);backdrop-filter:blur(6px)}
+dialog h3{color:var(--gold);margin-bottom:10px}
+dialog p{color:var(--silver);font-size:14px;margin:8px 0}
+dialog .close{margin-top:14px;width:100%;padding:12px;border-radius:14px;border:none;background:linear-gradient(135deg,#F5C542,#E8A23D);color:#1D1B26;font-weight:800;font-size:15px;cursor:pointer}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><span class="logo">🌙 LunoXod</span><span class="sp"></span><button class="icon-btn" id="calBtn" aria-label="Календарь">📅</button><button class="icon-btn" id="aboutBtn" aria-label="О приложении">ℹ️</button></header>
+<div class="date" id="dateLabel"></div>
+<div class="card moon-box">
+<canvas id="moon" width="440" height="440"></canvas>
+<div class="phase" id="phaseLabel"></div>
+<div class="chips"><span class="chip gold" id="dayChip"></span><span class="chip" id="illumChip"></span><span class="chip" id="waxChip"></span></div>
+<div class="nav"><button id="prev">← Вчера</button><button id="today" class="today">• Сегодня •</button><button id="next">Завтра →</button></div>
+</div>
+<h2>Рекомендации дня</h2>
+<div class="card rec" id="rec"></div>
+<div class="cal-head" id="calHead"><button class="icon-btn" id="mPrev" aria-label="Предыдущий месяц">‹</button><span class="m" id="mLabel"></span><button class="icon-btn" id="mNext" aria-label="Следующий месяц">›</button></div>
+<div class="cal" id="cal"></div>
+<footer>LunoXod · расчёты локально на устройстве · данные не собираются</footer>
+</div>
+<dialog id="about"><h3>О приложении LunoXod</h3>
+<p>Лунный календарь: фазы Луны, лунные дни и рекомендации. Все расчёты выполняются локально на вашем устройстве по астрономическим формулам (Meeus).</p>
+<p>Приложение не собирает, не хранит и не передаёт персональные данные. Интернет не требуется для основной функциональности. Сторонние аналитики и рекламные сети не используются.</p>
+<p>Настройки хранятся локально и удаляются вместе с приложением. Контакты: skrypnik.vova@gmail.com</p>
+<button class="close" id="aboutClose">Понятно</button></dialog>
+<script>
+'use strict';
+const SYN = 29.530588861, D2R = Math.PI / 180;
+const $ = id => document.getElementById(id);
+function jd(d) { return d.getTime() / 86400000 + 2440587.5; }
+function newMoonJD(k) {
+  const T = k / 1236.85;
+  let JDE = 2451550.09766 + 29.530588861 * k + 0.00015437 * T * T - 0.000000150 * T ** 3 + 0.00000000073 * T ** 4;
+  const M = (2.5534 + 29.10535670 * k - 0.0000014 * T * T - 0.00000011 * T ** 3) * D2R;
+  const Mp = (201.5643 + 385.81693528 * k + 0.0107582 * T * T + 0.00001238 * T ** 3 - 0.000000058 * T ** 4) * D2R;
+  const F = (160.7108 + 390.66732586 * k - 0.0016118 * T * T - 0.00000227 * T ** 3 + 0.000000011 * T ** 4) * D2R;
+  const O = (124.7746 - 1.56375588 * k + 0.0020672 * T * T + 0.00000215 * T ** 3) * D2R;
+  const E = 1 - 0.002516 * T - 0.0000074 * T * T;
+  const c = -0.40720 * Math.sin(Mp) + 0.17241 * E * Math.sin(M) + 0.01608 * Math.sin(2 * Mp) + 0.01039 * Math.sin(2 * F) + 0.00739 * E * Math.sin(Mp - M) - 0.00514 * E * Math.sin(Mp + M) + 0.00208 * E * E * Math.sin(2 * M) - 0.00111 * Math.sin(Mp - 2 * F) - 0.00057 * Math.sin(Mp + 2 * F) + 0.00056 * E * Math.sin(2 * Mp + M) - 0.00042 * Math.sin(3 * Mp) + 0.00042 * E * Math.sin(M + 2 * F) + 0.00038 * E * Math.sin(M - 2 * F) - 0.00024 * E * Math.sin(2 * Mp - M) - 0.00017 * Math.sin(O) - 0.00007 * Math.sin(Mp + 2 * M);
+  const A = 0.000325 * Math.sin((299.77 + 0.107408 * k - 0.009173 * T * T) * D2R) + 0.000165 * Math.sin((251.88 + 0.016321 * k) * D2R) + 0.000164 * Math.sin((251.83 + 26.651886 * k) * D2R) + 0.000126 * Math.sin((349.42 + 36.412478 * k) * D2R) + 0.000110 * Math.sin((84.66 + 18.206239 * k) * D2R);
+  return JDE + c + A;
+}
+function lunar(date) {
+  const noon = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+  const j = jd(noon);
+  let k = Math.floor((j - 2451550.09766) / SYN);
+  let nm = newMoonJD(k);
+  if (nm > j) { k -= 1; nm = newMoonJD(k); }
+  const age = j - nm;
+  const illum = (1 - Math.cos(2 * Math.PI * age / SYN)) / 2;
+  const waxing = age < SYN / 2;
+  const day = Math.floor(age) + 1;
+  let phase;
+  if (age < 1.0 || age > 28.5) phase = ['🌑', 'Новолуние'];
+  else if (age < 6.38) phase = ['🌒', 'Растущий серп'];
+  else if (age < 8.38) phase = ['🌓', 'Первая четверть'];
+  else if (age < 13.77) phase = ['🌔', 'Растущая Луна'];
+  else if (age < 15.77) phase = ['🌕', 'Полнолуние'];
+  else if (age < 21.15) phase = ['🌖', 'Убывающая Луна'];
+  else if (age < 23.15) phase = ['🌗', 'Последняя четверть'];
+  else phase = ['🌘', 'Убывающий серп'];
+  return { age, illum, waxing, day, phase };
+}
+function drawMoon(cv, L, R) {
+  const ctx = cv.getContext('2d'), w = cv.width, h = cv.height, cx = w / 2, cy = h / 2;
+  ctx.clearRect(0, 0, w, h);
+  const g = ctx.createRadialGradient(cx, cy, R * .6, cx, cy, R * 1.5);
+  g.addColorStop(0, 'rgba(245,197,66,.16)'); g.addColorStop(1, 'rgba(245,197,66,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fillStyle = '#1b2440'; ctx.fill();
+  ctx.strokeStyle = 'rgba(201,209,227,.25)'; ctx.lineWidth = 1; ctx.stroke();
+  const c = Math.cos(2 * Math.PI * L.age / SYN);
+  ctx.save(); ctx.translate(cx, cy); ctx.beginPath();
+  if (L.waxing) { ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2, false); ctx.ellipse(0, 0, R * Math.abs(c), R, 0, Math.PI / 2, -Math.PI / 2, c > 0); }
+  else { ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2, true); ctx.ellipse(0, 0, R * Math.abs(c), R, 0, Math.PI / 2, -Math.PI / 2, c <= 0); }
+  ctx.closePath();
+  const lg = ctx.createLinearGradient(-R, 0, R, 0); lg.addColorStop(0, '#f6e7b2'); lg.addColorStop(1, '#f5c542');
+  ctx.fillStyle = lg; ctx.fill(); ctx.restore();
+}
+const REC = [
+{t:'День планирования',d:['планировать месяц и цели','записывать намерения'],a:['начинать крупные дела','стричься']},
+{t:'День активности',d:['начинать новое','физическая нагрузка'],a:['переедать','конфликтовать']},
+{t:'День движения',d:['спорт и прогулки','действовать решительно'],a:['лениться','откладывать дела']},
+{t:'День выбора',d:['взвешивать решения','партнёрские разговоры'],a:['спешить с выводами','азартные траты']},
+{t:'День умеренности',d:['лёгкое питание','режим и баланс'],a:['переедание','тяжёлая пища']},
+{t:'День дыхания',d:['прогулки на воздухе','дыхательные практики'],a:['душные помещения','пассивность']},
+{t:'День слова',d:['общение и переговоры','учёба и чтение'],a:['пустые споры','резкие слова']},
+{t:'День отдыха',d:['спокойный темп','очищение и порядок'],a:['перегрузки','стресс']},
+{t:'День защиты',d:['осторожность в делах','проверка деталей'],a:['риск и авантюры','дальние поездки']},
+{t:'День дома',d:['семья и уют','домашние дела'],a:['конфликты','суета']},
+{t:'День энергии',d:['спорт и активность','смелые начинания'],a:['переутомление','переедание']},
+{t:'День помощи',d:['милосердие и поддержка','добрые дела'],a:['эгоизм','жадность']},
+{t:'День обновления',d:['обучение и новые идеи','омоложение и уход'],a:['застой','тяжёлая пища']},
+{t:'День работы',d:['кропотливые задачи','наведение порядка'],a:['спешка','крупные риски']},
+{t:'День полноты',d:['праздник и благодарность','умеренное застолье'],a:['переедание','тяжёлый труд']},
+{t:'День тишины',d:['спокойствие и баланс','прогулки'],a:['суета','громкие споры']},
+{t:'День творчества',d:['радость и вдохновение','творческие задачи'],a:['уныние','одиночество']},
+{t:'День самоанализа',d:['рефлексия и дневник','честные выводы'],a:['самокритика в крайность','сплетни']},
+{t:'День очищения',d:['уборка и расхламление','лёгкое питание'],a:['накопление хлама','тяжёлая еда']},
+{t:'День завершения',d:['закрывать хвосты','доводить дела до конца'],a:['начинать новое','распыляться']},
+{t:'День смелости',d:['стартовать проекты','проявлять инициативу'],a:['робость','пассивность']},
+{t:'День знаний',d:['исследования и учёба','работа с информацией'],a:['поверхностность','спешка']},
+{t:'День дисциплины',d:['режим и спорт','планирование'],a:['хаос','нарушение режима']},
+{t:'День силы',d:['физический труд','выносливость'],a:['перегрузки без отдыха','лень']},
+{t:'День интуиции',d:['сны и знаки','творческие озарения'],a:['игнорировать чувства','сухая логика везде']},
+{t:'День экономии',d:['тишина и бережливость','восстановление сил'],a:['крупные траты','суета']},
+{t:'День благодарности',d:['благодарить близких','подводить итоги'],a:['обиды','претензии']},
+{t:'День подготовки',d:['планировать следующий цикл','мягкий уход за собой'],a:['резкие перемены','стрижка']},
+{t:'День итога',d:['покой и завершение','прощение и отпускание'],a:['новые начинания','суета']},
+{t:'День отпускания',d:['отдых и тишина','подготовка к новолунию'],a:['активные старты','перегрузки']}
+];
+let sel = new Date(); let view = new Date(sel.getFullYear(), sel.getMonth(), 1);
+const FMT = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+const MFMT = new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' });
+function sameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+function render() {
+  const L = lunar(sel);
+  $('dateLabel').textContent = FMT.format(sel);
+  drawMoon($('moon'), L, 150);
+  $('phaseLabel').textContent = L.phase[0] + ' ' + L.phase[1];
+  $('dayChip').textContent = L.day + '-й лунный день';
+  $('illumChip').textContent = 'освещённость ' + Math.round(L.illum * 100) + '%';
+  $('waxChip').textContent = L.waxing ? 'растущая' : 'убывающая';
+  $('today').style.visibility = sameDay(sel, new Date()) ? 'hidden' : 'visible';
+  const r = REC[Math.min(L.day, 30) - 1];
+  $('rec').innerHTML = '<div class="t">' + r.t + '</div><ul>' + r.d.map(x => '<li class="do">' + x + '</li>').join('') + '</ul><ul>' + r.a.map(x => '<li class="avoid">' + x + '</li>').join('') + '</ul>';
+  renderCal();
+}
+function renderCal() {
+  $('mLabel').textContent = MFMT.format(view);
+  const cal = $('cal'); cal.innerHTML = '';
+  ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].forEach(w => { const d = document.createElement('div'); d.className = 'wd'; d.textContent = w; cal.appendChild(d); });
+  const first = new Date(view.getFullYear(), view.getMonth(), 1);
+  const lead = (first.getDay() + 6) % 7;
+  const days = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
+  for (let i = 0; i < lead; i++) { const e = document.createElement('button'); e.className = 'empty'; e.disabled = true; cal.appendChild(e); }
+  for (let d = 1; d <= days; d++) {
+    const date = new Date(view.getFullYear(), view.getMonth(), d);
+    const L = lunar(date);
+    const b = document.createElement('button');
+    if (sameDay(date, new Date())) b.classList.add('today');
+    if (sameDay(date, sel)) b.classList.add('sel');
+    const cv = document.createElement('canvas'); cv.width = 44; cv.height = 44; cv.style.width = '22px'; cv.style.height = '22px';
+    drawMoon(cv, L, 15);
+    const dn = document.createElement('span'); dn.className = 'd'; dn.textContent = d;
+    const ln = document.createElement('span'); ln.className = 'l'; ln.textContent = L.day;
+    b.append(cv, dn, ln);
+    b.addEventListener('click', () => { sel = date; render(); });
+    cal.appendChild(b);
+  }
+}
+$('prev').addEventListener('click', () => { sel = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate() - 1); view = new Date(sel.getFullYear(), sel.getMonth(), 1); render(); });
+$('next').addEventListener('click', () => { sel = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate() + 1); view = new Date(sel.getFullYear(), sel.getMonth(), 1); render(); });
+$('today').addEventListener('click', () => { sel = new Date(); view = new Date(sel.getFullYear(), sel.getMonth(), 1); render(); });
+$('mPrev').addEventListener('click', () => { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); renderCal(); });
+$('mNext').addEventListener('click', () => { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); renderCal(); });
+$('calBtn').addEventListener('click', () => $('calHead').scrollIntoView({ behavior: 'smooth' }));
+$('aboutBtn').addEventListener('click', () => $('about').showModal());
+$('aboutClose').addEventListener('click', () => $('about').close());
+render();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+</script>
+</body>
+</html>
