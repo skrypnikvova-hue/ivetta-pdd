@@ -134,7 +134,7 @@ function showExplanation(q) {
   const old = document.getElementById('explainBox'); if (old) old.remove();
   const box = document.createElement('div'); box.id = 'explainBox'; box.className = 'explain';
   const head = document.createElement('div'); head.className = 'explain-head';
-  head.innerHTML = '<span class="explain-ic">ℹ️</span><b>Пояснение</b>';
+  head.innerHTML = '<span class="explain-ic">💡</span><b>Пояснение</b>';
   const body = document.createElement('div'); body.className = 'explain-body';
   const lead = document.createElement('strong');
   lead.textContent = 'Правильный ответ: ' + (correctIndex(q) + 1) + '. ';
@@ -144,7 +144,20 @@ function showExplanation(q) {
   box.append(head, body, foot);
   $('answers').after(box);
   $('nextBtn').classList.add('invite');
+  requestAnimationFrame(() => box.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' }));
   return true;
+}
+function rowTitle(q) {
+  if (state.mode === 'exam') return 'Экзамен';
+  if (state.mode === 'ticket') return titleOf();
+  return 'Билет ' + (q.ticket || 1) + ' · ' + titleOf();
+}
+function paintAnswered() {
+  const el = $('answeredChip'); if (!el) return;
+  let n;
+  if (state.mode === 'exam' && state.exam) n = state.exam.i + (answeredIndex === state.exam.i ? 1 : 0);
+  else n = current.filter(x => state.ledger[x.id]).length;
+  el.textContent = 'Отвечено ' + n + ' / ' + current.length;
 }
 async function loadData() {
   bankError = false;
@@ -263,9 +276,11 @@ function render() {
   const rec = state.mode !== 'exam' ? state.ledger[q.id] : null;
   if (rec) { answeredIndex = state.index; lastChoice = rec.c; }
   const answered = answeredIndex === state.index;
-  $('sectionTitle').textContent = titleOf();
+  window.scrollTo(0, 0);
+  $('sectionTitle').textContent = rowTitle(q);
   $('sectionCount').textContent = (state.index + 1) + ' / ' + total;
-  $('progressFill').style.width = ((state.index + 1) / total * 100) + '%';
+  $('catChip').textContent = state.cat;
+  paintAnswered();
   $('qChip').textContent = isExam ? 'Экзамен' : state.cat + ' · ' + (state.mode === 'review' ? 'Повторение' : 'Билет ' + q.ticket);
   if (isExam && state.exam) {
     tick();
@@ -307,7 +322,7 @@ function answer(i, ok, q) {
   if (ok) { state.session.ok++; state.mistakes.delete(q.id); state.mastered.add(q.id); sfx.ok(); }
   else { state.session.bad++; state.mistakes.add(q.id); sfx.bad(); }
   if (state.mode !== 'exam') { state.ledger[q.id] = { c: i, ok: ok, t: Date.now() }; const lg = getLog(); lg[q.id] = { ok: ok, t: Date.now() }; store.set(k('log'), JSON.stringify(lg)); }
-  recordDaily(ok); save();
+  recordDaily(ok); save(); paintAnswered();
   if (state.mode === 'exam' && state.exam) {
     if (!ok) state.exam.wrong.push(q.id);
     state.exam.i = state.index; saveExam(); paintBoard();
@@ -490,6 +505,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('homeImg').addEventListener('error', () => { $('homeImg').hidden = true; $('homeFallback').toggleAttribute('hidden', false); });
   $('logoBtn').addEventListener('click', () => { sfx.tap(); show('home'); });
   $('menuBtn').addEventListener('click', () => { sfx.tap(); openSheet('menuSheet'); });
+  $('catChip').addEventListener('click', () => { sfx.tap(); openSheet('catSheet'); });
   $('homeMenuBtn').addEventListener('click', () => openSheet('menuSheet'));
   $('homeContinueBtn').addEventListener('click', () => { show('quiz'); rebuild(); });
   $('homeExamBtn').addEventListener('click', () => startExam(!!state.exam));
@@ -567,42 +583,4 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
   syncControls(); renderInfo(); refreshMenu();
 })();
 /* ivetta: fixed bottom nav (android reference) */
-(function () {
-  function pin() {
-    const btns = Array.from(document.querySelectorAll('button')).filter(b => /Далее/.test(b.textContent || ''));
-    if (!btns.length) { setTimeout(pin, 400); return; }
-    const bar = btns[0].closest('div');
-    if (!bar || bar.dataset.pinned) return;
-    bar.dataset.pinned = '1';
-    bar.style.position = 'fixed';
-    bar.style.left = '0'; bar.style.right = '0'; bar.style.bottom = '0';
-    bar.style.zIndex = '30';
-    bar.style.background = 'rgba(244,242,236,.92)';
-    bar.style.backdropFilter = 'blur(10px)';
-    bar.style.padding = '10px 16px calc(10px + env(safe-area-inset-bottom))';
-    bar.style.borderTop = '1px solid #E4E0D5';
-    document.body.style.paddingBottom = '86px';
-  }
-  pin();
-})();
-/* ivetta: explain unroll */
-(function () {
-  function unroll() {
-    const hdr = Array.from(document.querySelectorAll('*')).find(el =>
-      el.children.length === 0 && /^Пояснение/.test((el.textContent || '').trim()));
-    if (!hdr || hdr.dataset.unrolled) return;
-    hdr.dataset.unrolled = '1';
-    let card = hdr.parentElement;
-    for (let i = 0; i < 3 && card; i++) {
-      card.style.maxHeight = 'none';
-      card.style.height = 'auto';
-      card.style.overflow = 'visible';
-      card.querySelectorAll('*').forEach(d => {
-        d.style.maxHeight = 'none';
-        d.style.overflow = 'visible';
-      });
-      card = card.parentElement;
-    }
-  }
-  setInterval(unroll, 900);
-})();
+document.body.classList.add('fixed-nav');
