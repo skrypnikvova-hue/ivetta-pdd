@@ -585,3 +585,24 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
   }
   pin();
 })();
+/* ivetta: explain unroll */
+(function () {
+  function unroll() {
+    const hdr = Array.from(document.querySelectorAll('*')).find(el =>
+      el.children.length === 0 && /^Пояснение/.test((el.textContent || '').trim()));
+    if (!hdr || hdr.dataset.unrolled) return;
+    hdr.dataset.unrolled = '1';
+    let card = hdr.parentElement;
+    for (let i = 0; i < 3 && card; i++) {
+      card.style.maxHeight = 'none';
+      card.style.height = 'auto';
+      card.style.overflow = 'visible';
+      card.querySelectorAll('*').forEach(d => {
+        d.style.maxHeight = 'none';
+        d.style.overflow = 'visible';
+      });
+      card = card.parentElement;
+    }
+  }
+  setInterval(unroll, 900);
+})();
