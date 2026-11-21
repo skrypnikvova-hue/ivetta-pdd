@@ -1,4 +1,4 @@
-const CACHE = 'ivetta-pdd-v9';
+const CACHE = 'ivetta-pdd-v8';
 const SHELL = ['./', './index.html', './style.css', './payments.js', './app.js', './manifest.json', './icon.svg', './icon-192.png', './icon-512.png', './icon-512-maskable.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE).map(x => caches.delete(x)))).then(() => self.clients.claim())); });

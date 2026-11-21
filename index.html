@@ -15,41 +15,6 @@
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="stylesheet" href="./style.css">
-<style id="ivetta-identity">
-:root{--bar-h:64px}
-body{overflow-x:clip}
-body[data-view="quiz"]{--bar-h:116px}
-.appbar{flex-direction:column;align-items:stretch;justify-content:center;gap:6px}
-.bar-row{display:flex;align-items:center;gap:6px;min-width:0}
-.icon-btn{width:40px;height:40px;flex-shrink:0}
-.home-hero{display:none}
-.brand-wrap{flex:1;min-width:0;display:flex;justify-content:center}
-.brand-chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#6D28D9;color:#fff;font-size:15px;font-weight:700;line-height:1.2;padding:10px 20px;border-radius:40px;box-shadow:0 3px 10px rgba(109,40,217,.35)}
-.brand-chip:active{transform:scale(.96)}
-.switch.pill{flex-shrink:0;gap:6px;padding:4px 8px 4px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px}
-.switch.pill .switch-label{order:1}
-.switch.pill .track{order:2}
-.switch.pill .lock{order:0}
-.appbar .switch-label,body[data-view="home"] .appbar .switch-label{display:inline;font-size:13px;font-weight:700;color:#3A3742;text-shadow:none}
-.appbar-mid{display:flex;flex-direction:column;gap:6px;flex:none}
-body:not([data-view="quiz"]) #appbarMid{display:none}
-.bar-row2{justify-content:space-between;gap:8px}
-.bar-ticket{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:800;color:var(--text)}
-.cat-chip,.answered-chip{text-transform:none;letter-spacing:0;font-size:11.5px;font-weight:800;border-radius:999px}
-.cat-chip{flex-shrink:0;padding:5px 12px;letter-spacing:.6px;color:var(--blue-700);background:var(--blue-100)}
-.answered-chip{padding:4px 10px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line)}
-.bar-row3{justify-content:flex-start}
-#card{overflow:visible}
-.auto-bar{border-radius:0 0 var(--r-lg) var(--r-lg)}
-#answers{margin-bottom:0}
-.explain{margin-top:12px;max-height:none;overflow:visible;scroll-margin-bottom:130px}
-.explain-body{max-height:none;overflow:visible;padding-right:0}
-body.fixed-nav #quizView{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
-body.fixed-nav .navbar{position:fixed;left:0;right:0;bottom:0;z-index:30;margin:0;gap:10px;padding:16px max(24px,calc((100% - 592px)/2)) calc(24px + env(safe-area-inset-bottom));background:#F4F2EC}
-body.fixed-nav .navbar #prevBtn{flex:1 1 0}
-body.fixed-nav .navbar #nextBtn{flex:2 1 0}
-@media(max-width:360px){.brand-chip{padding:10px 12px}.switch.pill{padding:4px 6px 4px 10px}}
-</style>
 </head>
 <body data-view="home">
 <div class="bg" aria-hidden="true">
@@ -57,25 +22,35 @@ body.fixed-nav .navbar #nextBtn{flex:2 1 0}
   <div class="bg-grain"></div>
 </div>
 <header class="appbar">
-  <div class="bar-row bar-row1">
-    <button class="icon-btn" id="menuBtn" aria-label="Меню">
-      <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-    </button>
-    <div class="brand-wrap"><button class="brand-chip" id="logoBtn" aria-label="На главную">Ivetta PDD</button></div>
+  <button class="logo" id="logoBtn" aria-label="На главную">
+    <svg viewBox="0 0 64 64" class="logo-mark" aria-hidden="true">
+      <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#3D5AFE"/></linearGradient></defs>
+      <rect width="64" height="64" rx="16" fill="url(#lg)"/>
+      <path d="M18 52 L27 12 h10 L46 52 Z" fill="#fff"/>
+      <rect x="30.4" y="17" width="3.2" height="7" rx="1.6" fill="#6D28D9"/>
+      <rect x="30.4" y="29" width="3.2" height="7" rx="1.6" fill="#6D28D9"/>
+      <rect x="30.4" y="41" width="3.2" height="7" rx="1.6" fill="#6D28D9"/>
+    </svg>
+    <span class="logo-word">Ivetta<span class="logo-chip">PDD</span></span>
+  </button>
+  <div class="appbar-mid" id="appbarMid">
+    <div class="appbar-titles"><span id="sectionTitle">Все вопросы</span><span id="sectionCount">1 / 800</span></div>
+    <div class="progress-track"><div id="progressFill"></div></div>
+  </div>
+  <div class="appbar-actions">
     <button class="icon-btn" id="soundBtn" aria-label="Звук">
       <svg viewBox="0 0 24 24" class="ic-on"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
       <svg viewBox="0 0 24 24" class="ic-off" hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9l6 6M22 9l-6 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
     </button>
-    <label class="switch pill" id="answerSwitch" title="Показывать правильный ответ">
+    <label class="switch" id="answerSwitch" title="Показывать правильный ответ">
       <input type="checkbox" id="showAnswer">
       <span class="track"><span class="knob"></span></span>
       <span class="switch-label">Ответ</span>
       <span class="lock" id="switchLock" hidden>🔒</span>
     </label>
-  </div>
-  <div class="appbar-mid" id="appbarMid">
-    <div class="bar-row bar-row2"><span class="bar-ticket"><span id="sectionTitle">Билет</span><span class="bar-sep"> · </span><span id="sectionCount">1 / 20</span></span><button class="chip cat-chip" id="catChip" aria-label="Категория">CD</button></div>
-    <div class="bar-row bar-row3"><span class="chip answered-chip" id="answeredChip">Отвечено 0 / 20</span></div>
+    <button class="icon-btn" id="menuBtn" aria-label="Меню">
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
   </div>
 </header>
 <main id="stage">
@@ -123,6 +98,7 @@ body.fixed-nav .navbar #nextBtn{flex:2 1 0}
     </article>
     <div class="navbar">
       <button class="nav-btn" id="prevBtn">← Назад</button>
+      <span class="nav-hint">свайп ← → · клавиши 1-4</span>
       <button class="nav-btn primary" id="nextBtn">Далее →</button>
     </div>
   </section>
