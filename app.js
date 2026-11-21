@@ -154,7 +154,7 @@ async function loadData() {
   await loadExplanations();
   load(); syncControls();
   if (state.exam) { show('quiz'); rebuild(); startExamTimer(); }
-  else { show('home'); rebuild(); }
+  else { const v = document.body.dataset.view; show(v === 'empty' ? 'quiz' : v); rebuild(); }
 }
 async function rebuild() {
   clearAdvance(); topicError = false;
