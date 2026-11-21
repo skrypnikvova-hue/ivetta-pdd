@@ -25,8 +25,8 @@ window.IvettaPayments = (function () {
     if (digits(c.cvc).length < 3) errors.cvc = '3 цифры';
     return { ok: !Object.keys(errors).length, errors };
   }
-  function modeNow() { return localStorage.getItem('ivetta_pay_mode') || MODE; }
-  function base() { return (localStorage.getItem('ivetta_pay_base') || '').replace(/\/$/, ''); }
+  function modeNow() { return localStorage.getItem('ivetta_pay_mode') || (window.IVETTA_PAY_BASE ? 'backend' : MODE); }
+  function base() { return (localStorage.getItem('ivetta_pay_base') || window.IVETTA_PAY_BASE || '').replace(/\/$/, ''); }
   async function bpost(path, obj) {
     const r = await fetch(base() + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj) });
     if (!r.ok) { const e = new Error('server_' + r.status); e.code = 'server'; throw e; }

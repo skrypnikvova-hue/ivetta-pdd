@@ -1,0 +1,1 @@
+window.IVETTA_PAY_BASE = '';
