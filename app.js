@@ -566,3 +566,22 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
   sfx.win(); confetti(); toast('Оплата подтверждена банком — доступ активирован пожизненно 🎉');
   syncControls(); renderInfo(); refreshMenu();
 })();
+/* ivetta: fixed bottom nav (android reference) */
+(function () {
+  function pin() {
+    const btns = Array.from(document.querySelectorAll('button')).filter(b => /Далее/.test(b.textContent || ''));
+    if (!btns.length) { setTimeout(pin, 400); return; }
+    const bar = btns[0].closest('div');
+    if (!bar || bar.dataset.pinned) return;
+    bar.dataset.pinned = '1';
+    bar.style.position = 'fixed';
+    bar.style.left = '0'; bar.style.right = '0'; bar.style.bottom = '0';
+    bar.style.zIndex = '30';
+    bar.style.background = 'rgba(244,242,236,.92)';
+    bar.style.backdropFilter = 'blur(10px)';
+    bar.style.padding = '10px 16px calc(10px + env(safe-area-inset-bottom))';
+    bar.style.borderTop = '1px solid #E4E0D5';
+    document.body.style.paddingBottom = '86px';
+  }
+  pin();
+})();
