@@ -22,22 +22,11 @@
   <div class="bg-grain"></div>
 </div>
 <header class="appbar">
-  <button class="logo" id="logoBtn" aria-label="На главную">
-    <svg viewBox="0 0 64 64" class="logo-mark" aria-hidden="true">
-      <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B5CF6"/><stop offset="1" stop-color="#3D5AFE"/></linearGradient></defs>
-      <rect width="64" height="64" rx="16" fill="url(#lg)"/>
-      <path d="M18 52 L27 12 h10 L46 52 Z" fill="#fff"/>
-      <rect x="30.4" y="17" width="3.2" height="7" rx="1.6" fill="#6D28D9"/>
-      <rect x="30.4" y="29" width="3.2" height="7" rx="1.6" fill="#6D28D9"/>
-      <rect x="30.4" y="41" width="3.2" height="7" rx="1.6" fill="#6D28D9"/>
-    </svg>
-    <span class="logo-word">Ivetta<span class="logo-chip">PDD</span></span>
-  </button>
-  <div class="appbar-mid" id="appbarMid">
-    <div class="appbar-titles"><span id="sectionTitle">Все вопросы</span><span id="sectionCount">1 / 800</span></div>
-    <div class="progress-track"><div id="progressFill"></div></div>
-  </div>
-  <div class="appbar-actions">
+  <div class="appbar-main">
+    <button class="icon-btn" id="menuBtn" aria-label="Меню">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="brand-wrap"><button class="brand-chip" id="logoBtn" aria-label="На главную">Ivetta PDD</button></div>
     <button class="icon-btn" id="soundBtn" aria-label="Звук">
       <svg viewBox="0 0 24 24" class="ic-on"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
       <svg viewBox="0 0 24 24" class="ic-off" hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9l6 6M22 9l-6 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
@@ -48,9 +37,10 @@
       <span class="switch-label">Ответ</span>
       <span class="lock" id="switchLock" hidden>🔒</span>
     </label>
-    <button class="icon-btn" id="menuBtn" aria-label="Меню">
-      <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-    </button>
+  </div>
+  <div class="appbar-mid" id="appbarMid" hidden>
+    <div class="appbar-titles"><span id="sectionTitle">Билет 1 · Все вопросы · 1 / 800</span><button class="chip" id="catChip" aria-label="Категория">CD</button></div>
+    <div class="answered-row"><span class="chip" id="answeredChip" aria-live="polite">Отвечено 0 / 800</span></div>
   </div>
 </header>
 <main id="stage">
@@ -90,7 +80,7 @@
   <section id="quizView" hidden>
     <div class="exam-hud" id="examHud" hidden><span class="exam-timer" id="examTime">20:00</span><span class="exam-dots" id="examDots"></span><span class="exam-left" id="examLeft"></span><button class="exam-end" id="examEnd">Завершить</button><div class="exam-board" id="examBoard"></div></div>
     <article class="card" id="card">
-      <div class="q-top"><span class="chip" id="qChip">Билет 1</span><span class="q-done" id="qDone"></span><span class="lane"></span></div>
+      <div class="q-top"><span class="chip" id="qChip">Билет 1</span><span class="question-progress" id="questionProgress" aria-hidden="true"></span></div>
       <h1 id="questionText">Загрузка…</h1>
       <figure id="imageWrap" hidden><img id="questionImage" alt="Иллюстрация"><figcaption>Нажми, чтобы увеличить</figcaption></figure>
       <div id="answers" role="list"></div>
@@ -98,7 +88,6 @@
     </article>
     <div class="navbar">
       <button class="nav-btn" id="prevBtn">← Назад</button>
-      <span class="nav-hint">свайп ← → · клавиши 1-4</span>
       <button class="nav-btn primary" id="nextBtn">Далее →</button>
     </div>
   </section>

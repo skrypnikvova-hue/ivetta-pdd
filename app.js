@@ -134,11 +134,11 @@ function showExplanation(q) {
   const old = document.getElementById('explainBox'); if (old) old.remove();
   const box = document.createElement('div'); box.id = 'explainBox'; box.className = 'explain';
   const head = document.createElement('div'); head.className = 'explain-head';
-  head.innerHTML = '<span class="explain-ic">ℹ️</span><b>Пояснение</b>';
+  head.innerHTML = '<span class="explain-ic">💡</span><b>Пояснение</b>';
   const body = document.createElement('div'); body.className = 'explain-body';
   const lead = document.createElement('strong');
-  lead.textContent = 'Правильный ответ: ' + (correctIndex(q) + 1) + '. ';
-  body.appendChild(lead); body.appendChild(document.createTextNode(tip));
+  lead.textContent = 'Правильный ответ: ' + (correctIndex(q) + 1);
+  body.append(lead, document.createTextNode(tip.replace(/^Правильный ответ:\s*\d+[.\s]*/i, '')));
   const foot = document.createElement('div'); foot.className = 'explain-foot';
   foot.textContent = 'Автопереход отключён для этого вопроса — читай спокойно и жми «Далее».';
   box.append(head, body, foot);
@@ -169,7 +169,7 @@ async function rebuild() {
     catch (e) { topicError = true; list = []; }
   }
   current = list; if (state.index >= current.length) state.index = 0;
-  answeredIndex = -1; lastChoice = -1; render(); refreshMenu();
+  answeredIndex = -1; lastChoice = -1; render(true); refreshMenu();
 }
 function setContext(mode, ticket, topic) {
   save(); state.mode = mode;
@@ -242,13 +242,26 @@ function finishExam(pass, reason) {
 function show(v) {
   ['home', 'quiz', 'progress', 'info', 'done', 'empty', 'examResult'].forEach(x => $(x + 'View').hidden = x !== v);
   document.body.dataset.view = v;
-  $('appbarMid').style.visibility = v === 'quiz' ? 'visible' : 'hidden';
+  $('appbarMid').hidden = v !== 'quiz';
+  window.scrollTo(0, 0);
   if (v === 'home') refreshHome();
   if (v === 'progress') renderProgress();
   if (v === 'info') renderInfo();
-  if (v === 'quiz') { if (state.exam && state.exam.deadline <= Date.now()) { finishExam(false, 'Время вышло'); return; } render(); }
+  if (v === 'quiz') { if (state.exam && state.exam.deadline <= Date.now()) { finishExam(false, 'Время вышло'); return; } if (current.length) render(); }
 }
-function render() {
+function paintProgress() {
+  const exam = state.mode === 'exam' && state.exam;
+  const answered = exam ? state.exam.i + Number(answeredIndex === state.exam.i) : current.filter(q => state.ledger[q.id]).length;
+  $('answeredChip').textContent = 'Отвечено ' + answered + ' / ' + current.length;
+  const start = Math.floor(state.index / 20) * 20;
+  $('questionProgress').replaceChildren(...current.slice(start, start + 20).map((q, i) => {
+    const dot = document.createElement('i');
+    if (start + i === state.index) dot.className = 'current';
+    else if (exam ? start + i < answered : state.ledger[q.id]) dot.className = 'answered';
+    return dot;
+  }));
+}
+function render(resetScroll = false) {
   const oldEx = document.getElementById('explainBox'); if (oldEx) oldEx.remove();
   $('nextBtn').classList.remove('invite');
   const isExam = state.mode === 'exam';
@@ -263,9 +276,11 @@ function render() {
   const rec = state.mode !== 'exam' ? state.ledger[q.id] : null;
   if (rec) { answeredIndex = state.index; lastChoice = rec.c; }
   const answered = answeredIndex === state.index;
-  $('sectionTitle').textContent = titleOf();
-  $('sectionCount').textContent = (state.index + 1) + ' / ' + total;
-  $('progressFill').style.width = ((state.index + 1) / total * 100) + '%';
+  if (resetScroll) window.scrollTo(0, 0);
+  const section = isExam || state.mode === 'ticket' ? titleOf() : 'Билет ' + q.ticket + ' · ' + titleOf();
+  $('sectionTitle').textContent = section + ' · ' + (state.index + 1) + ' / ' + total;
+  $('catChip').textContent = state.cat;
+  paintProgress();
   $('qChip').textContent = isExam ? 'Экзамен' : state.cat + ' · ' + (state.mode === 'review' ? 'Повторение' : 'Билет ' + q.ticket);
   if (isExam && state.exam) {
     tick();
@@ -275,11 +290,19 @@ function render() {
   }
   $('questionText').textContent = q.text;
   const wrap = $('imageWrap'), img = $('questionImage');
-  if (q.image) {
-    const n = String(q.image).split('/').pop(); wrap.hidden = false;
-    img.onerror = () => { img.onerror = () => { img.onerror = () => { wrap.hidden = true; }; img.src = './' + n; }; img.src = './images_ab/' + n; };
+  const n = String(q.image || '').split('/').pop();
+  if (n && n.toLowerCase() !== 'no_image.jpg') {
+    wrap.hidden = false;
+    img.onerror = () => {
+      if (state.cat === 'AB' && !img.src.includes('/images_ab/')) img.src = './images_ab/' + n;
+      else wrap.hidden = true;
+    };
     img.src = './images/' + n;
-  } else wrap.hidden = true;
+  } else {
+    wrap.hidden = true;
+    img.onerror = null;
+    img.removeAttribute('src');
+  }
   const box = $('answers'); box.innerHTML = '';
   q.answers.forEach((a, i) => {
     const ok = a.isCorrect === true || (a.isCorrect === undefined && q.correctIndex === i);
@@ -307,7 +330,7 @@ function answer(i, ok, q) {
   if (ok) { state.session.ok++; state.mistakes.delete(q.id); state.mastered.add(q.id); sfx.ok(); }
   else { state.session.bad++; state.mistakes.add(q.id); sfx.bad(); }
   if (state.mode !== 'exam') { state.ledger[q.id] = { c: i, ok: ok, t: Date.now() }; const lg = getLog(); lg[q.id] = { ok: ok, t: Date.now() }; store.set(k('log'), JSON.stringify(lg)); }
-  recordDaily(ok); save();
+  recordDaily(ok); save(); paintProgress();
   if (state.mode === 'exam' && state.exam) {
     if (!ok) state.exam.wrong.push(q.id);
     state.exam.i = state.index; saveExam(); paintBoard();
@@ -315,7 +338,7 @@ function answer(i, ok, q) {
     if (state.exam.wrong.length > EXAM_MAX_WRONG) { finishExam(false, 'Превышен лимит ошибок'); return; }
     if (state.index >= current.length - 1) { finishExam(true, ''); return; }
     $('autoBar').classList.add('pending');
-    advanceTimer = setTimeout(() => { state.exam.i = state.index + 1; state.index = state.exam.i; answeredIndex = -1; saveExam(); render(); }, 1200);
+    advanceTimer = setTimeout(() => { state.exam.i = state.index + 1; state.index = state.exam.i; answeredIndex = -1; saveExam(); render(true); }, 1200);
     return;
   }
   const hasTip = showExplanation(q);
@@ -329,11 +352,11 @@ function next() {
   clearAdvance();
   if (state.mode === 'exam') {
     if (answeredIndex !== state.index || state.index >= current.length - 1) return;
-    state.exam.i = state.index + 1; state.index = state.exam.i; answeredIndex = -1; saveExam(); render(); return;
+    state.exam.i = state.index + 1; state.index = state.exam.i; answeredIndex = -1; saveExam(); render(true); return;
   }
-  if (state.index < current.length - 1) { state.index++; answeredIndex = -1; save(); render(); } else complete();
+  if (state.index < current.length - 1) { state.index++; answeredIndex = -1; save(); render(true); } else complete();
 }
-function prev() { if (state.mode === 'exam') return; clearAdvance(); if (state.index > 0) { state.index--; answeredIndex = -1; save(); render(); } }
+function prev() { if (state.mode === 'exam') return; clearAdvance(); if (state.index > 0) { state.index--; answeredIndex = -1; save(); render(true); } }
 function complete() {
   clearAdvance(); state.done.add(ctxKey()); save();
   const s = state.session, t = s.ok + s.bad;
@@ -490,6 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('homeImg').addEventListener('error', () => { $('homeImg').hidden = true; $('homeFallback').toggleAttribute('hidden', false); });
   $('logoBtn').addEventListener('click', () => { sfx.tap(); show('home'); });
   $('menuBtn').addEventListener('click', () => { sfx.tap(); openSheet('menuSheet'); });
+  $('catChip').addEventListener('click', () => { sfx.tap(); openSheet('catSheet'); });
   $('homeMenuBtn').addEventListener('click', () => openSheet('menuSheet'));
   $('homeContinueBtn').addEventListener('click', () => { show('quiz'); rebuild(); });
   $('homeExamBtn').addEventListener('click', () => startExam(!!state.exam));
@@ -510,12 +534,12 @@ document.addEventListener('DOMContentLoaded', () => {
     else setContext(n);
   }));
   $('answerSwitch').addEventListener('click', e => { if (state.mode === 'exam') { e.preventDefault(); toast('На экзамене подсказки отключены'); return; } if (!entitled()) { e.preventDefault(); show('info'); toast('Пробный период завершён — открой пожизненный доступ'); } });
-  $('showAnswer').addEventListener('change', e => { if (state.mode === 'exam') { e.target.checked = false; toast('На экзамене подсказки отключены'); return; } if (!entitled()) { e.target.checked = false; show('info'); return; } state.showAnswer = e.target.checked; save(); render(); });
+  $('showAnswer').addEventListener('change', e => { if (state.mode === 'exam') { e.target.checked = false; toast('На экзамене подсказки отключены'); return; } if (!entitled()) { e.target.checked = false; show('info'); return; } state.showAnswer = e.target.checked; save(); if (!$('quizView').hidden) render(); });
   $('autoAdvance').addEventListener('change', e => { state.auto = e.target.checked; save(); if (!state.auto) clearAdvance(); });
   $('soundBtn').addEventListener('click', () => { state.sound = !state.sound; save(); syncControls(); if (state.sound) sfx.tap(); });
   $('prevBtn').addEventListener('click', prev); $('nextBtn').addEventListener('click', next);
   $('resetSectionBtn').addEventListener('click', () => { const key = ctxKey(), old = state.index; state.index = 0; state.done.delete(key); state.ledger = {}; save(); rebuild(); closeSheets(); toast('Прогресс раздела сброшен', 'Вернуть', () => { state.index = old; save(); rebuild(); }); });
-  $('repeatBtn').addEventListener('click', () => { state.index = 0; state.session = { ok: 0, bad: 0 }; answeredIndex = -1; state.ledger = {}; save(); show('quiz'); render(); });
+  $('repeatBtn').addEventListener('click', () => { state.index = 0; state.session = { ok: 0, bad: 0 }; answeredIndex = -1; state.ledger = {}; save(); show('quiz'); render(true); });
   $('nextSectionBtn').addEventListener('click', () => { if (state.mode === 'ticket') setContext('ticket', state.ticket % maxTicket() + 1); else if (state.mode === 'topic') { const i = topics.indexOf(state.topic); setContext('topic', undefined, topics[(i + 1) % topics.length] || state.topic); } else openSheet('menuSheet'); });
   $('doneMenuBtn').addEventListener('click', () => openSheet('menuSheet'));
   $('emptyMenuBtn').addEventListener('click', () => openSheet('menuSheet'));
@@ -565,44 +589,4 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
   store.set('ent', JSON.stringify(ent));
   sfx.win(); confetti(); toast('Оплата подтверждена банком — доступ активирован пожизненно 🎉');
   syncControls(); renderInfo(); refreshMenu();
-})();
-/* ivetta: fixed bottom nav (android reference) */
-(function () {
-  function pin() {
-    const btns = Array.from(document.querySelectorAll('button')).filter(b => /Далее/.test(b.textContent || ''));
-    if (!btns.length) { setTimeout(pin, 400); return; }
-    const bar = btns[0].closest('div');
-    if (!bar || bar.dataset.pinned) return;
-    bar.dataset.pinned = '1';
-    bar.style.position = 'fixed';
-    bar.style.left = '0'; bar.style.right = '0'; bar.style.bottom = '0';
-    bar.style.zIndex = '30';
-    bar.style.background = 'rgba(244,242,236,.92)';
-    bar.style.backdropFilter = 'blur(10px)';
-    bar.style.padding = '10px 16px calc(10px + env(safe-area-inset-bottom))';
-    bar.style.borderTop = '1px solid #E4E0D5';
-    document.body.style.paddingBottom = '86px';
-  }
-  pin();
-})();
-/* ivetta: explain unroll */
-(function () {
-  function unroll() {
-    const hdr = Array.from(document.querySelectorAll('*')).find(el =>
-      el.children.length === 0 && /^Пояснение/.test((el.textContent || '').trim()));
-    if (!hdr || hdr.dataset.unrolled) return;
-    hdr.dataset.unrolled = '1';
-    let card = hdr.parentElement;
-    for (let i = 0; i < 3 && card; i++) {
-      card.style.maxHeight = 'none';
-      card.style.height = 'auto';
-      card.style.overflow = 'visible';
-      card.querySelectorAll('*').forEach(d => {
-        d.style.maxHeight = 'none';
-        d.style.overflow = 'visible';
-      });
-      card = card.parentElement;
-    }
-  }
-  setInterval(unroll, 900);
 })();
