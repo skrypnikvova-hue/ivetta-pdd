@@ -34,7 +34,7 @@ window.IvettaPayments = (function () {
   }
   async function backendPay(card) {
     const idem = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
-    const created = await bpost('/api/pay/create', { amount: PRICE, idempotenceKey: idem, description: 'Ivetta PDD — пожизненный доступ' });
+    const created = await bpost('/api/pay/create', { amount: PRICE, idempotenceKey: idem, description: 'Ivetta PDD — пожизненный доступ', returnUrl: location.origin + location.pathname });
     if (created.redirect_url) { sessionStorage.setItem('ivetta_pay_id', created.id); location.assign(created.redirect_url); return new Promise(() => {}); }
     const conf = await bpost('/api/pay/confirm', { paymentId: created.id, card: { number: card.number, exp: card.exp, cvc: card.cvc } });
     if (conf.status !== 'succeeded') { const e = new Error(conf.status); e.code = conf.status; throw e; }
