@@ -590,3 +590,41 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
   sfx.win(); confetti(); toast('Оплата подтверждена банком — доступ активирован пожизненно 🎉');
   syncControls(); renderInfo(); refreshMenu();
 })();
+
+(function(){
+  function patchSheet(sheet){
+    if (sheet.dataset.ivettaParity) return;
+    sheet.dataset.ivettaParity = '1';
+    var all = sheet.querySelectorAll('button, a, div');
+    for (var i=0;i<all.length;i++){
+      var t = (all[i].textContent||'');
+      if (t.indexOf('Сбросить прогресс') >= 0 && all[i].children.length <= 2) { all[i].remove(); break; }
+    }
+    var sw = sheet.querySelector('input[type="checkbox"], [role="switch"], .switch');
+    if (sw && sw.parentElement) {
+      var lab = document.createElement('span');
+      lab.textContent = 'Автопереход после ответа';
+      lab.style.cssText = 'font-weight:600;font-size:14px;margin-inline-end:10px;';
+      sw.parentElement.insertBefore(lab, sw);
+    }
+    var foot = sheet.querySelectorAll('div, span, p');
+    for (var j=0;j<foot.length;j++){
+      var ft = (foot[j].textContent||'');
+      if (ft.indexOf('v4.3') >= 0 && foot[j].children.length === 0) { foot[j].textContent = 'Ivetta PDD · v1.0'; }
+    }
+  }
+  var mo = new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      if (!m.addedNodes) return;
+      m.addedNodes.forEach(function(n){
+        if (n.nodeType !== 1) return;
+        var txt = n.textContent || '';
+        if (txt.indexOf('Сбросить прогресс') >= 0 || txt.indexOf('Автопереход') >= 0) {
+          var sheet = (n.closest && n.closest('[class*=sheet], [class*=menu], dialog, [role=dialog]')) || n;
+          patchSheet(sheet);
+        }
+      });
+    });
+  });
+  mo.observe(document.body, { childList: true, subtree: true });
+})();
