@@ -590,10 +590,20 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
   sfx.win(); confetti(); toast('Оплата подтверждена банком — доступ активирован пожизненно 🎉');
   syncControls(); renderInfo(); refreshMenu();
 })();
-
 (function(){
-  function patchSheet(sheet){
-    if (sheet.dataset.ivettaParity) return;
+  function sheetRoot(){
+    var els = document.querySelectorAll('div, section, aside, dialog');
+    var best = null, bestLen = Infinity;
+    for (var i=0;i<els.length;i++){
+      var e = els[i];
+      var t = e.textContent || '';
+      if (t.indexOf('Сбросить прогресс') >= 0 && t.indexOf('Автопереход') >= 0 && e.querySelectorAll('button, a').length >= 3 && t.length < bestLen) { best = e; bestLen = t.length; }
+    }
+    return best;
+  }
+  function patch(){
+    var sheet = sheetRoot();
+    if (!sheet || sheet.dataset.ivettaParity) return;
     sheet.dataset.ivettaParity = '1';
     var all = sheet.querySelectorAll('button, a, div');
     for (var i=0;i<all.length;i++){
@@ -601,8 +611,9 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
       if (t.indexOf('Сбросить прогресс') >= 0 && all[i].children.length <= 2) { all[i].remove(); break; }
     }
     var sw = sheet.querySelector('input[type="checkbox"], [role="switch"], .switch');
-    if (sw && sw.parentElement) {
+    if (sw && sw.parentElement && !sw.parentElement.querySelector('[data-ivetta-label]')) {
       var lab = document.createElement('span');
+      lab.setAttribute('data-ivetta-label','1');
       lab.textContent = 'Автопереход после ответа';
       lab.style.cssText = 'font-weight:600;font-size:14px;margin-inline-end:10px;';
       sw.parentElement.insertBefore(lab, sw);
@@ -610,21 +621,13 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
     var foot = sheet.querySelectorAll('div, span, p');
     for (var j=0;j<foot.length;j++){
       var ft = (foot[j].textContent||'');
-      if (ft.indexOf('v4.3') >= 0 && foot[j].children.length === 0) { foot[j].textContent = 'Ivetta PDD · v1.0'; }
+      if (ft.indexOf('v4.3') >= 0 && foot[j].children.length === 0) foot[j].textContent = 'Ivetta PDD · v1.0';
     }
   }
-  var mo = new MutationObserver(function(muts){
-    muts.forEach(function(m){
-      if (!m.addedNodes) return;
-      m.addedNodes.forEach(function(n){
-        if (n.nodeType !== 1) return;
-        var txt = n.textContent || '';
-        if (txt.indexOf('Сбросить прогресс') >= 0 || txt.indexOf('Автопереход') >= 0) {
-          var sheet = (n.closest && n.closest('[class*=sheet], [class*=menu], dialog, [role=dialog]')) || n;
-          patchSheet(sheet);
-        }
-      });
-    });
-  });
-  mo.observe(document.body, { childList: true, subtree: true });
+  var timer = null;
+  function schedule(){ if (timer) return; timer = setTimeout(function(){ timer = null; patch(); }, 250); }
+  document.addEventListener('click', schedule, true);
+  document.addEventListener('pointerup', schedule, true);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', schedule); else schedule();
+  new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden', 'style'] });
 })();
