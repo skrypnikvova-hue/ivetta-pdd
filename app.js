@@ -604,12 +604,19 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
     }
   }
   function hideSwitches(root){
-    var sws = root.querySelectorAll('input[type="checkbox"], [role="switch"], .switch');
-    for (var i=0;i<sws.length;i++){ var p = sws[i].parentElement; if (p) p.style.display = 'none'; }
-    var ls = root.querySelectorAll('div, span, p, label');
-    for (var j=0;j<ls.length;j++){
-      var lt = (ls[j].textContent||'');
-      if (ls[j].children.length === 0 && lt.indexOf('Автопереход') >= 0) ls[j].style.display = 'none';
+    var sheets = root.querySelectorAll('div, section, aside, dialog');
+    var sheet = null, bl = Infinity;
+    for (var i=0;i<sheets.length;i++){
+      var t = sheets[i].textContent || '';
+      if (t.indexOf('Главная') >= 0 && t.indexOf('Билеты') >= 0 && t.indexOf('Автопереход') >= 0 && t.length < bl) { sheet = sheets[i]; bl = t.length; }
+    }
+    if (!sheet) return;
+    var sws = sheet.querySelectorAll('input[type="checkbox"], [role="switch"], .switch');
+    for (var j=0;j<sws.length;j++){ sws[j].style.display = 'none'; }
+    var ls = sheet.querySelectorAll('div, span, p, label');
+    for (var k=0;k<ls.length;k++){
+      var lt = (ls[k].textContent||'').trim();
+      if (ls[k].children.length === 0 && lt.indexOf('Автопереход') >= 0) ls[k].style.display = 'none';
     }
   }
   function sheetRoot(){
