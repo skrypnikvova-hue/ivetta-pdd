@@ -606,6 +606,11 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
   function hideSwitches(root){
     var sws = root.querySelectorAll('input[type="checkbox"], [role="switch"], .switch');
     for (var i=0;i<sws.length;i++){ var p = sws[i].parentElement; if (p) p.style.display = 'none'; }
+    var ls = root.querySelectorAll('div, span, p, label');
+    for (var j=0;j<ls.length;j++){
+      var lt = (ls[j].textContent||'');
+      if (ls[j].children.length === 0 && lt.indexOf('Автопереход') >= 0) ls[j].style.display = 'none';
+    }
   }
   function sheetRoot(){
     var els = document.querySelectorAll('div, section, aside, dialog');
