@@ -591,6 +591,18 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
   syncControls(); renderInfo(); refreshMenu();
 })();
 (function(){
+  var SIG = 'karusel-znaniy';
+  function isFoot(t){ return t.indexOf('архитектура') >= 0 || (t.indexOf('· v') >= 0 && (t.indexOf('Ivetta') >= 0 || t.indexOf('IVETTA') >= 0)); }
+  function normalize(root){
+    var els = root.querySelectorAll('div, span, p, footer');
+    for (var i=0;i<els.length;i++){
+      var e = els[i];
+      if (e.children.length === 0) {
+        var t = (e.textContent||'').trim();
+        if (isFoot(t) && t !== SIG) e.textContent = SIG;
+      }
+    }
+  }
   function sheetRoot(){
     var els = document.querySelectorAll('div, section, aside, dialog');
     var best = null, bestLen = Infinity;
@@ -602,6 +614,7 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
     return best;
   }
   function patch(){
+    normalize(document);
     var sheet = sheetRoot();
     if (!sheet || sheet.dataset.ivettaParity) return;
     sheet.dataset.ivettaParity = '1';
@@ -621,11 +634,7 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
       lab.style.cssText = 'font-weight:600;font-size:14px;margin-inline-end:10px;';
       sw.parentElement.insertBefore(lab, sw);
     }
-    var foot = sheet.querySelectorAll('div, span, p');
-    for (var j=0;j<foot.length;j++){
-      var ft = (foot[j].textContent||'');
-      if (ft.indexOf('v4.3') >= 0 && foot[j].children.length === 0) foot[j].textContent = 'Ivetta PDD · v1.0';
-    }
+    normalize(sheet);
   }
   var timer = null;
   function schedule(){ if (timer) return; timer = setTimeout(function(){ timer = null; patch(); }, 250); }
