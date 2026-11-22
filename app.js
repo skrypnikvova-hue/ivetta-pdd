@@ -605,13 +605,16 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
     var sheet = sheetRoot();
     if (!sheet || sheet.dataset.ivettaParity) return;
     sheet.dataset.ivettaParity = '1';
-    var all = sheet.querySelectorAll('button, a, div');
+    var all = sheet.querySelectorAll('button, a, div, span');
+    var best = null, bl = Infinity;
     for (var i=0;i<all.length;i++){
       var t = (all[i].textContent||'');
-      if (t.indexOf('Сбросить прогресс') >= 0 && all[i].children.length <= 2) { all[i].remove(); break; }
+      if (t.indexOf('Сбросить прогресс') >= 0 && all[i].children.length <= 2 && t.length < bl) { best = all[i]; bl = t.length; }
     }
+    if (best) best.remove();
+    var hasLabel = (sheet.textContent||'').indexOf('Автопереход после ответа') >= 0;
     var sw = sheet.querySelector('input[type="checkbox"], [role="switch"], .switch');
-    if (sw && sw.parentElement && !sw.parentElement.querySelector('[data-ivetta-label]')) {
+    if (!hasLabel && sw && sw.parentElement && !sw.parentElement.querySelector('[data-ivetta-label]')) {
       var lab = document.createElement('span');
       lab.setAttribute('data-ivetta-label','1');
       lab.textContent = 'Автопереход после ответа';
