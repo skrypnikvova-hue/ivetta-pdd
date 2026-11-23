@@ -652,3 +652,52 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', schedule); else schedule();
   new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden', 'style'] });
 })();
+(function(){
+  var BASE = localStorage.getItem('iv_api_base') || ((location.hostname === '127.0.0.1' || location.hostname === 'localhost') ? 'http://127.0.0.1:8799' : '');
+  var IID = localStorage.getItem('iv_install_id');
+  if (!IID) { IID = 'w-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); localStorage.setItem('iv_install_id', IID); }
+  var Q = [];
+  try { Q = JSON.parse(localStorage.getItem('iv_evt_queue') || '[]'); } catch (e) { Q = []; }
+  function persist() { try { localStorage.setItem('iv_evt_queue', JSON.stringify(Q.slice(-200))); } catch (e) {} }
+  function flush() {
+    if (!BASE || !Q.length) return;
+    var batch = Q.splice(0, 50); persist();
+    try {
+      fetch(BASE + '/api/evt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(batch), keepalive: true })
+        .then(function (r) { if (!r.ok) { Q = batch.concat(Q); persist(); } })
+        .catch(function () { Q = batch.concat(Q); persist(); });
+    } catch (e) { Q = batch.concat(Q); persist(); }
+  }
+  function evt(name, meta) {
+    Q.push({ event_id: 'w-' + IID + '-' + name + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Math.floor(Date.now() / 1000), platform: 'web', install_id: IID, name: name, meta: meta || {} });
+    persist(); flush();
+  }
+  window.ivEvt = evt; window.ivFlush = flush; window.ivInstallId = IID;
+  var origFetch = window.fetch;
+  window.fetch = function (url, opt) {
+    try {
+      var u = String(url);
+      if (u.indexOf('/create') >= 0 && opt && typeof opt.body === 'string') {
+        opt.body += '&install_id=' + encodeURIComponent(IID) + '&platform=web';
+      }
+    } catch (e) {}
+    return origFetch.apply(this, arguments);
+  };
+  if (!localStorage.getItem('iv_first_launch')) { localStorage.setItem('iv_first_launch', '1'); evt('first_launch'); }
+  if (!sessionStorage.getItem('iv_session')) { sessionStorage.setItem('iv_session', '1'); evt('session_start'); }
+  if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) evt('pwa_standalone_session');
+  window.addEventListener('appinstalled', function () { evt('pwa_install'); });
+  var paywallSeen = false;
+  new MutationObserver(function () {
+    if (paywallSeen) return;
+    var t = document.body.innerText || '';
+    if (t.indexOf('Оплата картой') >= 0 || (t.indexOf('399') >= 0 && t.indexOf('разово') >= 0)) { paywallSeen = true; evt('paywall_shown'); }
+  }).observe(document.body, { childList: true, subtree: true });
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('button') : null;
+    if (b && /Оплатить|Купить|399/.test(b.textContent || '')) evt('pay_click');
+  }, true);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') flush(); });
+  setInterval(flush, 30000);
+  flush();
+})();
