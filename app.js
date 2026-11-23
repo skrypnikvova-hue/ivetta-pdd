@@ -669,7 +669,7 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
     } catch (e) { Q = batch.concat(Q); persist(); }
   }
   function evt(name, meta) {
-    Q.push({ event_id: 'w-' + IID + '-' + name + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Math.floor(Date.now() / 1000), platform: 'web', install_id: IID, name: name, meta: meta || {} });
+    Q.push({ event_id: 'w-' + IID + '-' + name + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Math.floor(Date.now() / 1000), platform: 'web', app: 'ivetta-pdd', install_id: IID, name: name, meta: meta || {} });
     persist(); flush();
   }
   window.ivEvt = evt; window.ivFlush = flush; window.ivInstallId = IID;
