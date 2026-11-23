@@ -695,7 +695,7 @@ if (window.IvettaPayments && window.IvettaPayments.modeNow && window.IvettaPayme
   }).observe(document.body, { childList: true, subtree: true });
   document.addEventListener('click', function (e) {
     var b = e.target && e.target.closest ? e.target.closest('button') : null;
-    if (b && /Оплатить|Купить|399/.test(b.textContent || '')) evt('pay_click');
+    if (b && /оплатить|купить|399/i.test(b.textContent || '')) evt('pay_click');
   }, true);
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') flush(); });
   setInterval(flush, 30000);
